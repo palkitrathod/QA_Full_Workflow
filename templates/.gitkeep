@@ -1,0 +1,2 @@
+# Templates will be managed directly in the code (e.g. slack_notifier.py) to utilize f-strings, 
+# but this directory serves as a placeholder for standalone JSON block kit templates if needed in the future.

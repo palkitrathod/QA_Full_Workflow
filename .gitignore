@@ -1,0 +1,40 @@
+# Environment & Secrets
+.env
+.env.local
+
+# Temporary workbench
+.tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Playwright
+test-results/
+allure-results/
+allure-report/
+playwright-report/
+playwright-results.json
+
+# Generated artifacts (regenerated each run)
+generated_test_cases.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

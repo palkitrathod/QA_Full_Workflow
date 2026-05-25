@@ -1,0 +1,22 @@
+{
+  "name": "qa-workflow-ai-agent",
+  "version": "1.0.0",
+  "description": "Automated QA Workflow - Playwright test scripts generated and executed by AI agents",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "allure:generate": "npx allure generate allure-results -o allure-report --clean",
+    "allure:open": "npx allure open allure-report",
+    "allure:serve": "npx allure serve allure-results"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "allure-commandline": "^2.30.0",
+    "allure-playwright": "^3.0.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}
