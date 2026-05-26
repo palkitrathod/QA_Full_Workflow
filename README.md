@@ -12,28 +12,41 @@ flowchart TD
         A2["PRD/BRD Document"]
     end
 
-    %% Central Controller
+    %% Central Controller & State
     O((("Orchestrator")))
+    CTX[("Shared Context Store")]
+
     A1 -.-> O
     A2 -.-> O
+    O -.->|"Manages State"| CTX
 
-    %% Sequential Pipeline Steps
-    subgraph Pipeline ["QA Pipeline (Sequential Steps)"]
+    %% Pipeline Agents
+    subgraph Pipeline ["QA Pipeline Agents"]
         direction TB
         S1["1. Requirement Analyser"]
         S2["2. Test Case Generator"]
         S3["3. Script Generator"]
         HG{"Human Review Gate"}
-        S4["4. Script Executor (Playwright)"]
+        S4["4. Script Executor"]
         S5["5. Bug Filer"]
         S6["6. Report Generator"]
 
-        S1 -->|"context.json"| S2
-        S2 -->|"test_cases"| S3
-        S3 -->|"tests/specs/"| HG
-        HG -->|"Approved (or skipped)"| S4
-        S4 -->|"playwright-results.json"| S5
-        S5 -->|"bugs"| S6
+        S1 <-->|"Reads/Writes"| CTX
+        S2 <-->|"Reads/Writes"| CTX
+        S3 <-->|"Reads/Writes"| CTX
+        S4 <-->|"Reads/Writes"| CTX
+        S5 <-->|"Reads/Writes"| CTX
+        S6 <-->|"Reads/Writes"| CTX
+
+        S1 --> S2
+        S2 --> S3
+        S3 --> HG
+        HG -->|"Approved"| S4
+        S4 --> S5
+        S5 --> S6
+        
+        %% Regression Feedback Loop
+        S5 -.->|"🔴 Regression Feedback Loop"| S2
     end
 
     O ==> Pipeline
@@ -57,11 +70,13 @@ flowchart TD
     classDef core fill:#fff3e0,stroke:#f57c00;
     classDef output fill:#e8f5e9,stroke:#388e3c;
     classDef gate fill:#fce4ec,stroke:#c2185b;
+    classDef store fill:#e8eaf6,stroke:#3f51b5,stroke-width:3px;
 
     class A1,A2 input;
     class O,S1,S2,S3,S4,S5,S6 core;
     class J1,S_Alert,S_Report,A_Report output;
     class HG gate;
+    class CTX store;
 ```
 
 ## Features
