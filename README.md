@@ -8,12 +8,12 @@ An end-to-end automated QA pipeline that takes a JIRA ticket or PRD/BRD document
 flowchart TD
     %% Input Sources
     subgraph Inputs ["Input Sources"]
-        A1[JIRA Ticket ID]
-        A2[PRD/BRD Document]
+        A1["JIRA Ticket ID"]
+        A2["PRD/BRD Document"]
     end
 
     %% Central Controller
-    O(((Orchestrator)))
+    O((("Orchestrator")))
     A1 -.-> O
     A2 -.-> O
 
@@ -28,29 +28,29 @@ flowchart TD
         S5["5. Bug Filer"]
         S6["6. Report Generator"]
 
-        S1 --> |context.json| S2
-        S2 --> |test_cases| S3
-        S3 --> |tests/specs/| HG
-        HG --> |Approved (or skipped)| S4
-        S4 --> |playwright-results.json| S5
-        S5 --> |bugs| S6
+        S1 -->|"context.json"| S2
+        S2 -->|"test_cases"| S3
+        S3 -->|"tests/specs/"| HG
+        HG -->|"Approved (or skipped)"| S4
+        S4 -->|"playwright-results.json"| S5
+        S5 -->|"bugs"| S6
     end
 
     O ==> Pipeline
 
     %% Outputs
     subgraph Outputs ["External Integrations"]
-        J1[(JIRA Tickets)]
-        S_Alert[Slack Alerts]
-        S_Report[Slack Final Report]
-        A_Report[Allure HTML Report]
+        J1[("JIRA Tickets")]
+        S_Alert["Slack Alerts"]
+        S_Report["Slack Final Report"]
+        A_Report["Allure HTML Report"]
     end
 
     %% Connections to outputs
-    S5 -->|Creates / Updates| J1
-    S5 -.->|P0/P1 Real-time| S_Alert
-    S6 -->|Delivers QA Summary| S_Report
-    S4 -->|Generates| A_Report
+    S5 -->|"Creates / Updates"| J1
+    S5 -.->|"P0/P1 Real-time"| S_Alert
+    S6 -->|"Delivers QA Summary"| S_Report
+    S4 -->|"Generates"| A_Report
 
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef input fill:#e1f5fe,stroke:#0288d1;
