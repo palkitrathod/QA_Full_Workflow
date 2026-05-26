@@ -28,12 +28,12 @@ flowchart TD
         S5["5. Bug Filer"]
         S6["6. Report Generator"]
 
-        S1 --> |.tmp/context.json| S2
-        S2 --> |test_cases[]| S3
-        S3 --> |tests/specs/*.spec.ts| HG
+        S1 --> |context.json| S2
+        S2 --> |test_cases| S3
+        S3 --> |tests/specs/| HG
         HG --> |Approved (or skipped)| S4
         S4 --> |playwright-results.json| S5
-        S5 --> |bugs[]| S6
+        S5 --> |bugs| S6
     end
 
     O ==> Pipeline
