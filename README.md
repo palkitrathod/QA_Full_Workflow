@@ -4,47 +4,64 @@ An end-to-end automated QA pipeline that takes a JIRA ticket or PRD/BRD document
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         main.py (CLI Entry)                      │
-│  python main.py --jira SCRUM-38 --regression                    │
-│  python main.py --document path/to/prd.pdf                      │
-└──────────┬──────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Orchestrator (Pipeline Controller)              │
-│  - Initializes context in .tmp/context.json                      │
-│  - Runs 7 steps sequentially with abort/resume support           │
-│  - Human review gate for new features                            │
-└──┬───┬───┬───┬───┬───┬───┬──────────────────────────────────────┘
-   │   │   │   │   │   │   │
-   ▼   ▼   ▼   ▼   ▼   ▼   ▼
-┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐
-│1 │ │2 │ │3 │ │4 │ │5 │ │6 │ │7 │
-│  │ │  │ │  │ │  │ │  │ │  │ │  │
-│Re-│ │Test│ │Scr│ │Scr│ │Bug│ │Re-│
-│q  │ │Case│ │ipt│ │ipt│ │Fi-│ │p- │
-│An-│ │Gen-│ │Ge-│ │Ex-│ │ler│ │ort│
-│aly-│ │erat│ │ner│ │ecu│ │   │ │Ge-│
-│ser│ │or  │ │ato│ │tor│ │   │ │ner│
-│   │ │    │ │r  │ │   │ │   │ │at-│
-│   │ │    │ │   │ │   │ │   │ │or │
-└──┘ └──┘ └──┘ └──┘ └──┘ └──┘ └──┘
-  │    │     │     │     │     │    │
-  │    │     │     │     │     │    └──► Slack + JIRA Report
-  │    │     │     │     │     │
-  │    │     │     │     │     └────────► Allure Report
-  │    │     │     │     │
-  │    │     │     │     └──────────────► JIRA Bug Tickets
-  │    │     │     │
-  │    │     │     └────────────────────► playwright-results.json
-  │    │     │
-  │    │     └──────────────────────────► tests/pages/ + tests/specs/
-  │    │
-  │    └────────────────────────────────► generated_test_cases.md
-  │
-  └─────────────────────────────────────► context.json (requirements)
+```mermaid
+flowchart TD
+    %% Input Sources
+    subgraph Inputs ["Input Sources"]
+        A1[JIRA Ticket ID]
+        A2[PRD/BRD Document]
+    end
+
+    %% Central Controller
+    O(((Orchestrator)))
+    A1 -.-> O
+    A2 -.-> O
+
+    %% Sequential Pipeline Steps
+    subgraph Pipeline ["QA Pipeline (Sequential Steps)"]
+        direction TB
+        S1["1. Requirement Analyser"]
+        S2["2. Test Case Generator"]
+        S3["3. Script Generator"]
+        HG{"Human Review Gate"}
+        S4["4. Script Executor (Playwright)"]
+        S5["5. Bug Filer"]
+        S6["6. Report Generator"]
+
+        S1 --> |.tmp/context.json| S2
+        S2 --> |test_cases[]| S3
+        S3 --> |tests/specs/*.spec.ts| HG
+        HG --> |Approved (or skipped)| S4
+        S4 --> |playwright-results.json| S5
+        S5 --> |bugs[]| S6
+    end
+
+    O ==> Pipeline
+
+    %% Outputs
+    subgraph Outputs ["External Integrations"]
+        J1[(JIRA Tickets)]
+        S_Alert[Slack Alerts]
+        S_Report[Slack Final Report]
+        A_Report[Allure HTML Report]
+    end
+
+    %% Connections to outputs
+    S5 -->|Creates / Updates| J1
+    S5 -.->|P0/P1 Real-time| S_Alert
+    S6 -->|Delivers QA Summary| S_Report
+    S4 -->|Generates| A_Report
+
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef input fill:#e1f5fe,stroke:#0288d1;
+    classDef core fill:#fff3e0,stroke:#f57c00;
+    classDef output fill:#e8f5e9,stroke:#388e3c;
+    classDef gate fill:#fce4ec,stroke:#c2185b;
+
+    class A1,A2 input;
+    class O,S1,S2,S3,S4,S5,S6 core;
+    class J1,S_Alert,S_Report,A_Report output;
+    class HG gate;
 ```
 
 ## Features
