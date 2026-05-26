@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 
-const validUsername = process.env.USERNAME;
-const validPassword = process.env.PASSWORD;
+const validUsername = process.env.USERNAME || '';
+const validPassword = process.env.PASSWORD || '';
 
 test.describe('Login Page Tests', () => {
   let loginPage: LoginPage;
@@ -12,80 +12,72 @@ test.describe('Login Page Tests', () => {
     await loginPage.navigate();
   });
 
-  test('Verify presence of Login Page elements', async () => {
-    expect(await loginPage.usernameInput.isVisible()).toBe(true);
-    expect(await loginPage.passwordInput.isVisible()).toBe(true);
-    expect(await loginPage.loginButton.isVisible()).toBe(true);
+  test('Elements are visible on the login page', async () => {
+    await expect(loginPage.usernameInput).toBeVisible();
+    await expect(loginPage.passwordInput).toBeVisible();
+    await expect(loginPage.loginButton).toBeVisible();
   });
 
-  test('Verify absence of Login Page elements', async () => {
-    const nonExistentElement = page.locator('[data-test="non-existent"]');
-    expect(await nonExistentElement.count()).toBe(0);
+  test('Non‑existent element should not be present', async ({ page }) => {
+    const nonExistent = page.locator('[data-test="non-existent"]');
+    await expect(nonExistent).toHaveCount(0);
   });
 
-  test('Validate Username field with valid input', async () => {
+  test('Valid username input', async () => {
     await loginPage.enterUsername(validUsername);
-    expect(await loginPage.usernameInput.inputValue()).toBe(validUsername);
+    await expect(loginPage.usernameInput).toHaveValue(validUsername);
   });
 
-  test('Validate Username field with empty input', async () => {
+  test('Empty username shows error', async () => {
     await loginPage.enterUsername('');
     await loginPage.clickLogin();
-    expect(await loginPage.isErrorMessageVisible()).toBe(true);
+    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
   });
 
-  test('Validate Password field with valid input', async () => {
+  test('Valid password input', async () => {
     await loginPage.enterPassword(validPassword);
-    expect(await loginPage.passwordInput.inputValue()).toBe(validPassword);
+    await expect(loginPage.passwordInput).toHaveValue(validPassword);
   });
 
-  test('Validate Password field with empty input', async () => {
+  test('Empty password shows error', async () => {
     await loginPage.enterPassword('');
     await loginPage.clickLogin();
-    expect(await loginPage.isErrorMessageVisible()).toBe(true);
+    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
   });
 
-  test('Test Login button functionality with valid credentials', async () => {
+  test('Successful login with valid credentials', async () => {
     await loginPage.enterUsername(validUsername);
     await loginPage.enterPassword(validPassword);
     await loginPage.clickLogin();
-    expect(await loginPage.isInventoryVisible()).toBe(true);
+    await expect(loginPage.isInventoryVisible()).toBeTruthy();
   });
 
-  test('Verify successful login', async () => {
-    await loginPage.enterUsername(validUsername);
-    await loginPage.enterPassword(validPassword);
-    await loginPage.clickLogin();
-    expect(await loginPage.isInventoryVisible()).toBe(true);
-  });
-
-  test('Check error messages for invalid username', async () => {
+  test('Invalid username shows error', async () => {
     await loginPage.enterUsername('invalid_user');
     await loginPage.enterPassword(validPassword);
     await loginPage.clickLogin();
-    expect(await loginPage.isErrorMessageVisible()).toBe(true);
+    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
   });
 
-  test('Check error messages for invalid password', async () => {
+  test('Invalid password shows error', async () => {
     await loginPage.enterUsername(validUsername);
     await loginPage.enterPassword('invalid_password');
     await loginPage.clickLogin();
-    expect(await loginPage.isErrorMessageVisible()).toBe(true);
+    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
   });
 
-  test('Verify session management after page refresh', async () => {
+  test('Session persists after page refresh', async ({ page }) => {
     await loginPage.enterUsername(validUsername);
     await loginPage.enterPassword(validPassword);
     await loginPage.clickLogin();
     await page.reload();
-    expect(await loginPage.isInventoryVisible()).toBe(true);
+    await expect(loginPage.isInventoryVisible()).toBeTruthy();
   });
 
-  test('Verify access restriction for locked users', async () => {
+  test('Locked user cannot log in', async () => {
     await loginPage.enterUsername('locked_user');
     await loginPage.enterPassword(validPassword);
     await loginPage.clickLogin();
-    expect(await loginPage.isErrorMessageVisible()).toBe(true);
+    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
   });
-
 });
