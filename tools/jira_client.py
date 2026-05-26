@@ -8,7 +8,6 @@ Uses Basic Auth with email + API token per Atlassian Cloud REST API v3.
 """
 
 import os
-import json
 import sys
 from typing import Optional
 from dotenv import load_dotenv

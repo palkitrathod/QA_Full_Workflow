@@ -88,35 +88,4 @@ test.describe('Login Page Tests', () => {
     expect(await loginPage.isErrorMessageVisible()).toBe(true);
   });
 
-  test('Verify Login functionality in Google Chrome', async () => {
-    // Test logic for Chrome
-  });
-
-  test('Verify Login functionality in Mozilla Firefox', async () => {
-    // Test logic for Firefox
-  });
-
-  test('Verify Login functionality in Microsoft Edge', async () => {
-    // Test logic for Edge
-  });
-
-  test('Verify responsive design on desktop', async () => {
-    // Test logic for desktop
-  });
-
-  test('Verify responsive design on tablet', async () => {
-    // Test logic for tablet
-  });
-
-  test('Verify responsive design on mobile', async () => {
-    // Test logic for mobile
-  });
-
-  test('Check for sensitive information exposure in URL', async () => {
-    // Test logic for URL check
-  });
-
-  test('Verify UI alignment and validation messages', async () => {
-    // Test logic for UI alignment
-  });
 });

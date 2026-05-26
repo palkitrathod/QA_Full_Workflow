@@ -9,9 +9,7 @@ Uses slack_sdk WebhookClient for webhook-based messaging.
 """
 
 import os
-import json
 import sys
-from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()

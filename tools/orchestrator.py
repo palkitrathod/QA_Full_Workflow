@@ -58,16 +58,11 @@ class Orchestrator:
                 if ans.lower() != 'y':
                     self.abort("User rejected generated scripts.")
                     return
-                
-                scripts = ctx.get("scripts", [])
-                for s in scripts:
-                    s["status"] = "approved"
-                self.context_manager.update_scripts(scripts)
-            else:
-                scripts = ctx.get("scripts", [])
-                for s in scripts:
-                    s["status"] = "approved"
-                self.context_manager.update_scripts(scripts)
+
+            scripts = ctx.get("scripts", [])
+            for s in scripts:
+                s["status"] = "approved"
+            self.context_manager.update_scripts(scripts)
 
             if dry_run:
                 print("\n[DRY RUN] Complete. Stopping before execution.")
