@@ -6,77 +6,47 @@ An end-to-end automated QA pipeline that takes a JIRA ticket or PRD/BRD document
 
 ```mermaid
 flowchart TD
-    %% Input Sources
-    subgraph Inputs ["Input Sources"]
-        A1["JIRA Ticket ID"]
-        A2["PRD/BRD Document"]
-    end
+    %% Input
+    Input["JIRA Ticket or PRD Document"]
 
-    %% Central Controller & State
-    O((("Orchestrator")))
-    CTX[("Shared Context Store")]
-
-    A1 -.-> O
-    A2 -.-> O
-    O -.->|"Manages State"| CTX
-
-    %% Pipeline Agents
-    subgraph Pipeline ["QA Pipeline Agents"]
+    %% Core Pipeline
+    subgraph Pipeline ["QA Automation Pipeline"]
         direction TB
         S1["1. Requirement Analyser"]
         S2["2. Test Case Generator"]
         S3["3. Script Generator"]
         HG{"Human Review Gate"}
-        S4["4. Script Executor"]
+        S4["4. Script Executor (Playwright)"]
         S5["5. Bug Filer"]
-        S6["6. Report Generator"]
+        S6["6. QA Report Generator"]
 
-        S1 <-->|"Reads/Writes"| CTX
-        S2 <-->|"Reads/Writes"| CTX
-        S3 <-->|"Reads/Writes"| CTX
-        S4 <-->|"Reads/Writes"| CTX
-        S5 <-->|"Reads/Writes"| CTX
-        S6 <-->|"Reads/Writes"| CTX
-
-        S1 --> S2
-        S2 --> S3
-        S3 --> HG
-        HG -->|"Approved"| S4
-        S4 --> S5
-        S5 --> S6
+        S1 --> S2 --> S3 --> HG
+        HG -->|"Approved"| S4 --> S5 --> S6
         
-        %% Regression Feedback Loop
-        S5 -.->|"🔴 Regression Feedback Loop"| S2
+        %% Regression Loop
+        S5 -.->|"Files Bug & Triggers New Test"| S2
     end
 
-    O ==> Pipeline
+    %% State
+    CTX[("Shared Context Store (context.json)")]
+    Pipeline -.-|"All steps read/write state here"| CTX
 
-    %% Outputs
-    subgraph Outputs ["External Integrations"]
-        J1[("JIRA Tickets")]
-        S_Alert["Slack Alerts"]
-        S_Report["Slack Final Report"]
-        A_Report["Allure HTML Report"]
-    end
+    %% Connections
+    Input --> S1
+    S5 --> JIRA["JIRA (Bug Tickets)"]
+    S6 --> Slack["Slack (Final QA Report)"]
 
-    %% Connections to outputs
-    S5 -->|"Creates / Updates"| J1
-    S5 -.->|"P0/P1 Real-time"| S_Alert
-    S6 -->|"Delivers QA Summary"| S_Report
-    S4 -->|"Generates"| A_Report
-
+    %% Styling
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef input fill:#e1f5fe,stroke:#0288d1;
     classDef core fill:#fff3e0,stroke:#f57c00;
     classDef output fill:#e8f5e9,stroke:#388e3c;
-    classDef gate fill:#fce4ec,stroke:#c2185b;
     classDef store fill:#e8eaf6,stroke:#3f51b5,stroke-width:3px;
-
-    class A1,A2 input;
-    class O,S1,S2,S3,S4,S5,S6 core;
-    class J1,S_Alert,S_Report,A_Report output;
-    class HG gate;
+    
+    class Input input;
+    class JIRA,Slack output;
     class CTX store;
+    class S1,S2,S3,HG,S4,S5,S6 core;
 ```
 
 ## Features
