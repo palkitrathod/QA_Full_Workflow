@@ -1,0 +1,14 @@
+{
+  "name": "jira_get_issue",
+  "description": "Fetch a single JIRA issue (title, description, fields, etc.).",
+  "arguments": {
+    "base_url": {"type": "string", "description": "JIRA base URL, e.g. https://mycompany.atlassian.net"},
+    "ticket_id": {"type": "string", "description": "The issue key, e.g. PROJ-123"},
+    "auth_token": {"type": "string", "description": "Personal Access Token for JIRA API"}
+  },
+  "required": ["base_url", "ticket_id", "auth_token"],
+  "returns": {
+    "type": "object",
+    "description": "JIRA issue JSON payload as returned by the REST API."
+  }
+}

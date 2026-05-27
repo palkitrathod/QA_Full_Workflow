@@ -1,0 +1,26 @@
+{
+  "name": "browser_navigate",
+  "description": "Navigate a Playwright page to a given URL.",
+  "arguments": {
+    "url": {"type": "string", "description": "Destination URL (absolute or relative)."},
+    "wait_until": {
+      "type": "string",
+      "enum": ["load", "domcontentloaded", "networkidle"],
+      "default": "load",
+      "description": "When navigation is considered complete."
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "default": 30000,
+      "description": "Maximum wait time in milliseconds."
+    }
+  },
+  "required": ["url"],
+  "returns": {
+    "type": "object",
+    "properties": {
+      "status": {"type": "string", "enum": ["success", "error"]},
+      "error": {"type": ["string", "null"]}
+    }
+  }
+}

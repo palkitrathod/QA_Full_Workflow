@@ -24,6 +24,7 @@ class ReportGenerator:
         test_cases = ctx.get("test_cases", [])
         requirements = ctx.get("requirements", [])
         bugs = ctx.get("bugs", [])
+        evaluations = ctx.get("evaluations", [])
         
         # Calculate metrics
         total_tc = len(test_cases)
@@ -66,6 +67,7 @@ class ReportGenerator:
             "coverage_pct": coverage_pct,
             "pass_rate": pass_rate,
             "bug_summary": bug_summary,
+            "evaluations": evaluations,
             "allure_report_url": os.getenv("GITHUB_PAGES_URL", "file://allure-report/index.html"),
             "summary": summary_text,
             "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),

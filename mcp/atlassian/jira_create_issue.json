@@ -1,0 +1,15 @@
+{
+  "name": "jira_create_issue",
+  "description": "Create a new JIRA issue (title, description, fields).",
+  "arguments": {
+    "base_url": {"type": "string", "description": "JIRA base URL"},
+    "auth_token": {"type": "string", "description": "PAT for authentication"},
+    "project_key": {"type": "string", "description": "Project key, e.g. PROJ"},
+    "summary": {"type": "string", "description": "Short description"},
+    "description": {"type": "string", "description": "Full description"},
+    "issuetype": {"type": "string", "enum": ["Task", "Bug", "Story"], "default": "Task", "description": "Issue type"},
+    "priority": {"type": "string", "enum": ["P0", "P1", "P2", "P3"], "default": "P2", "description": "Priority"}
+  },
+  "required": ["base_url", "auth_token", "project_key", "summary", "description"],
+  "returns": {"type": "object", "description": "Created issue JSON returned by JIRA"}
+}

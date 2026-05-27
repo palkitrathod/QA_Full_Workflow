@@ -12,6 +12,8 @@ from .slack_notifier import SlackNotifier
 
 import os
 from .e2e_helper import E2EHelper
+from .deep_evaluation import evaluate_run  # <-- new import
+
 
 class ScriptGenerator:
     """Generates Playwright scripts (including optional E2E flow)."""
@@ -128,9 +130,27 @@ class PipelineController:
         if input_mode == "jira":
             ctx["source_ticket_id"] = source_id
             # Fetch JIRA custom fields for E2E flow if input mode is JIRA
-            from .jira_client import JiraClient
-            jira = JiraClient()
-            fields = jira.get_custom_fields(source_id, ["Target URL", "Scope", "E2E Flow", "E2E Username", "E2E Password"])  # returns dict
+            from .mcp_wrapper import mcp_call
+            # Use MCP to fetch custom fields for the ticket
+            fields = mcp_call(
+                ServerName="atlassian",
+                ToolName="jira_get_issue",
+                Arguments={
+                    "base_url": os.getenv("JIRA_BASE_URL"),
+                    "ticket_id": source_id,
+                    "auth_token": os.getenv("JIRA_API_TOKEN")
+                },
+                toolAction="MCP call",
+                toolSummary="JIRA custom fields"
+            )
+            # Extract needed fields (assuming the MCP returns full issue JSON)
+            ctx["target_app_url"] = fields.get("fields", {}).get("customfield_target_url") or ctx.get("target_app_url")
+            ctx["scope"] = fields.get("fields", {}).get("customfield_scope") or ctx.get("scope")
+            ctx["e2e_flow"] = fields.get("fields", {}).get("customfield_e2e_flow") or ctx.get("e2e_flow")
+            ctx["e2e_credentials"] = {
+                "username": fields.get("fields", {}).get("customfield_e2e_username"),
+                "password": fields.get("fields", {}).get("customfield_e2e_password")
+            }
             ctx["target_app_url"] = fields.get("Target URL") or ctx.get("target_app_url")
             ctx["scope"] = fields.get("Scope") or ctx.get("scope")
             ctx["e2e_flow"] = fields.get("E2E Flow") or ctx.get("e2e_flow")
@@ -179,10 +199,17 @@ class PipelineController:
 
             print("\n[4/7] Executing Scripts...")
             ScriptExecutor().run()
-            
+
+            # ==== Deep Evaluation ==== 
+            overall = evaluate_run(ctx.get("run_id"))
+            threshold = int(os.getenv("EVAL_THRESHOLD", "90"))
+            if overall < threshold:
+                self.abort(f"Overall evaluation {overall}% below threshold {threshold}%.")
+                return
+
             print("\n[5/7] Filing Bugs...")
             BugFiler().run()
-            
+
             print("\n[6/7] Generating Report...")
             ReportGenerator().run()
             
@@ -199,3 +226,7 @@ class PipelineController:
         ctx = self.context_manager.get_full_context()
         self.slack_notifier.send_abort_notification(reason, ctx.get("run_id", "N/A"))
         sys.exit(1)
+
+class Orchestrator(PipelineController):
+    """Alias for backward compatibility."""
+    pass
