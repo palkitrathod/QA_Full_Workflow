@@ -18,9 +18,7 @@ def mcp_call(*, ServerName: str, ToolName: str, Arguments: Dict[str, Any], toolA
         return {"fields": {"summary": "Dummy issue for dry run", "customfield_target_url": "https://example.com", "customfield_scope": "default", "customfield_e2e_flow": "Login,Cart,Checkout"}}
 
     if not call_mcp_tool:
-        # If MCP tooling is unavailable (e.g., during local dry‑run), return a generic placeholder.
-        # This mimics the structure expected by callers.
-        return {"fields": {"summary": "Dummy issue for dry run", "customfield_target_url": "https://example.com", "customfield_scope": "default", "customfield_e2e_flow": "Login,Cart,Checkout"}}
+        raise RuntimeError(f"MCP tool unavailable: call_mcp_tool() not imported. Cannot call {ServerName}.{ToolName}. Aborting pipeline.")
 
 
     result = call_mcp_tool(

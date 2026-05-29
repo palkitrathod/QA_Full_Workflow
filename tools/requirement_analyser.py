@@ -2,7 +2,7 @@ import os
 import json
 from .context_manager import ContextManager
 from .llm_client import LLMClient
-from .mcp_wrapper import mcp_call
+from .jira_client import JiraClient
 from .document_parser import DocumentParser
 
 class RequirementAnalyser:
@@ -24,15 +24,7 @@ class RequirementAnalyser:
         
         if input_mode == "jira":
             ticket_id = ctx.get("source_ticket_id")
-            ticket_data = mcp_call(
-                ServerName="atlassian",
-                ToolName="jira_get_issue",
-                Arguments={
-                    "base_url": os.getenv("JIRA_BASE_URL"),
-                    "ticket_id": ticket_id,
-                    "auth_token": os.getenv("JIRA_API_TOKEN")
-                }
-            )
+            ticket_data = JiraClient().fetch_ticket(ticket_id)
             raw_text = json.dumps(ticket_data, indent=2)
             
         elif input_mode == "document":
@@ -83,24 +75,8 @@ class RequirementAnalyser:
         )
         requirements = output.get("requirements", [])
         target_app_url = output.get("target_app_url")
-        # If LLM returned no requirements, fall back to dummy data to keep pipeline alive
         if not requirements:
-            dummy_requirements = [
-                {
-                    "id": "REQ-001",
-                    "title": "Sample Requirement",
-                    "description": "Fallback requirement when LLM yields none.",
-                    "acceptance_criteria": ["Criteria A", "Criteria B"],
-                    "priority": "P2",
-                    "source": "fallback"
-                }
-            ]
-            self.context_manager.update_requirements(dummy_requirements)
-            print("[FALLBACK] Used dummy requirements due to empty LLM response.")
-            requirements = dummy_requirements
-        # Proceed with normal validation
-        if not requirements:
-            raise ValueError("Requirement Analyser returned 0 requirements after fallback. Pipeline must abort.")
+            raise ValueError("Requirement Analyser returned 0 requirements from LLM. Aborting pipeline.")
         self.context_manager.update_requirements(requirements)
         if target_app_url:
             self.context_manager.update_target_app_url(target_app_url)

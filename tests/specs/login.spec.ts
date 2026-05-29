@@ -1,83 +1,55 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 
-const validUsername = process.env.USERNAME || '';
-const validPassword = process.env.PASSWORD || '';
+const validUsername = process.env.USERNAME;
+const validPassword = process.env.PASSWORD;
 
-test.describe('Login Page Tests', () => {
-  let loginPage: LoginPage;
+test('Successful Application Load', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.navigate();
+  await expect(page).toBeVisible('[data-test="inventory-container"]');
+});
 
-  test.beforeEach(async ({ page }) => {
-    loginPage = new LoginPage(page);
-    await loginPage.navigate();
-  });
+test('Application Load with Invalid URL', async ({ page }) => {
+  await page.goto('https://dev.dmerocket.com/invalid-url');
+  await expect(page).toHaveURL(/.*404/);
+});
 
-  test('Elements are visible on the login page', async () => {
-    await expect(loginPage.usernameInput).toBeVisible();
-    await expect(loginPage.passwordInput).toBeVisible();
-    await expect(loginPage.loginButton).toBeVisible();
-  });
+test('Application Load with Invalid Credentials', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.navigate();
+  await loginPage.enterCredentials('invalidUser', 'invalidPass');
+  const errorMessage = await loginPage.getErrorMessage();
+  expect(errorMessage).toContain('Username and password do not match any user in this service.');
+});
 
-  test('Non‑existent element should not be present', async ({ page }) => {
-    const nonExistent = page.locator('[data-test="non-existent"]');
-    await expect(nonExistent).toHaveCount(0);
-  });
+test('Application Load with No Credentials', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.navigate();
+  await loginPage.enterCredentials('', '');
+  const errorMessage = await loginPage.getErrorMessage();
+  expect(errorMessage).toContain('Username is required');
+});
 
-  test('Valid username input', async () => {
-    await loginPage.enterUsername(validUsername);
-    await expect(loginPage.usernameInput).toHaveValue(validUsername);
-  });
+test('Successful Admin User Login', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.navigate();
+  await loginPage.enterCredentials(validUsername, validPassword);
+  await expect(page).toBeVisible('[data-test="inventory-container"]');
+});
 
-  test('Empty username shows error', async () => {
-    await loginPage.enterUsername('');
-    await loginPage.clickLogin();
-    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
-  });
+test('Admin User Login with Incorrect Password', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.navigate();
+  await loginPage.enterCredentials(validUsername, 'wrongPassword');
+  const errorMessage = await loginPage.getErrorMessage();
+  expect(errorMessage).toContain('Username and password do not match any user in this service.');
+});
 
-  test('Valid password input', async () => {
-    await loginPage.enterPassword(validPassword);
-    await expect(loginPage.passwordInput).toHaveValue(validPassword);
-  });
-
-  test('Empty password shows error', async () => {
-    await loginPage.enterPassword('');
-    await loginPage.clickLogin();
-    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
-  });
-
-  test('Successful login with valid credentials', async () => {
-    await loginPage.enterUsername(validUsername);
-    await loginPage.enterPassword(validPassword);
-    await loginPage.clickLogin();
-    await expect(loginPage.isInventoryVisible()).toBeTruthy();
-  });
-
-  test('Invalid username shows error', async () => {
-    await loginPage.enterUsername('invalid_user');
-    await loginPage.enterPassword(validPassword);
-    await loginPage.clickLogin();
-    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
-  });
-
-  test('Invalid password shows error', async () => {
-    await loginPage.enterUsername(validUsername);
-    await loginPage.enterPassword('invalid_password');
-    await loginPage.clickLogin();
-    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
-  });
-
-  test('Session persists after page refresh', async ({ page }) => {
-    await loginPage.enterUsername(validUsername);
-    await loginPage.enterPassword(validPassword);
-    await loginPage.clickLogin();
-    await page.reload();
-    await expect(loginPage.isInventoryVisible()).toBeTruthy();
-  });
-
-  test('Locked user cannot log in', async () => {
-    await loginPage.enterUsername('locked_user');
-    await loginPage.enterPassword(validPassword);
-    await loginPage.clickLogin();
-    await expect(loginPage.isErrorMessageVisible()).toBeTruthy();
-  });
+test('Admin User Login with Incorrect Username', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.navigate();
+  await loginPage.enterCredentials('wrongUser', validPassword);
+  const errorMessage = await loginPage.getErrorMessage();
+  expect(errorMessage).toContain('Username and password do not match any user in this service.');
 });

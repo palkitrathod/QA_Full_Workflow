@@ -30,16 +30,18 @@ class ScriptGenerator:
 
         ctx = self.context_manager.get_full_context()
         target_url = ctx.get("target_app_url") or os.getenv("TARGET_APP_URL", "http://localhost:3000")
+        username = os.getenv("USERNAME", "standard_user")
+        password = os.getenv("PASSWORD", "secret_sauce")
 
         system_prompt = (
             f"{sop}\n\n"
             f"Target URL is: {target_url}\n"
+            f"Credentials: username={username}, password={password} (for valid login tests).\n"
             "IMPORTANT FORMAT RULES:\n"
             "- Each spec file must contain ONE or MORE test('description', async ({ page }) => {{ ... }}) blocks.\n"
             "- NEVER place await or page references at the top level of the file.\n"
             "- Every test block must import { test, expect } from '@playwright/test'.\n"
             "- Every test MUST contain real assertions (expect()). NEVER use placeholder comments.\n"
-            "- Credentials: username=standard_user, password=secret_sauce (for valid login tests).\n"
             "Return a JSON object with a 'files' array. Each file MUST have 'path' (e.g., 'tests/pages/LoginPage.ts' or 'tests/specs/login.spec.ts') and 'content' (raw TS code string).\n"
             "Also return a 'scripts' array of metadata: { 'id': 'SCR-001', 'test_case_id': 'TC-001', 'file_path': 'tests/specs/login.spec.ts', 'page_objects': ['tests/pages/LoginPage.ts'] }"
         )

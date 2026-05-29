@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Name Truncation — QA Retest Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1a1a2e; padding: 2rem; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .header { background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 2rem 2.5rem; border-radius: 16px; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(59,130,246,.15) 0%, transparent 70%); border-radius: 50%; }
+  .header h1 { font-size: 1.6rem; position: relative; z-index: 1; }
+  .header .sub { opacity: .75; font-size: .9rem; margin-top: .3rem; position: relative; z-index: 1; }
+  .header .meta { display: flex; gap: 1.5rem; margin-top: .8rem; font-size: .8rem; opacity: .65; position: relative; z-index: 1; }
+  .badge { display: inline-block; padding: .25rem .8rem; border-radius: 20px; font-size: .75rem; font-weight: 600; margin-top: .6rem; }
+  .badge.red { background: #fef2f2; color: #dc2626; }
+  .overall-card { background: #fff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .overall-value { font-size: 4rem; font-weight: 800; line-height: 1; }
+  .overall-value.fail { color: #ef4444; }
+  .overall-label { font-size: 1rem; color: #64748b; margin-top: .3rem; }
+  .overall-threshold { font-size: .85rem; color: #94a3b8; margin-top: .2rem; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .metric-card { background: #fff; border-radius: 12px; padding: 1.5rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .metric-value { font-size: 2.2rem; font-weight: 700; }
+  .metric-value.good { color: #22c55e; }
+  .metric-value.ok { color: #f59e0b; }
+  .metric-value.bad { color: #ef4444; }
+  .metric-label { font-size: .85rem; color: #64748b; margin-top: .3rem; }
+  .section { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .section h2 { font-size: 1.15rem; margin-bottom: 1rem; padding-bottom: .6rem; border-bottom: 2px solid #f1f5f9; display: flex; align-items: center; gap: .5rem; }
+  .section h3 { font-size: .95rem; margin: 1rem 0 .6rem; color: #334155; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: .75rem; margin-bottom: 1.2rem; }
+  .stat-box { background: #f8fafc; border-radius: 10px; padding: 1rem; text-align: center; }
+  .stat-box .num { font-size: 1.8rem; font-weight: 700; }
+  .stat-box .lbl { font-size: .78rem; color: #64748b; margin-top: .2rem; }
+  .stat-box .num.green { color: #22c55e; }
+  .stat-box .num.red { color: #ef4444; }
+  .stat-box .num.blue { color: #3b82f6; }
+  .stat-box .num.purple { color: #8b5cf6; }
+  .stat-box .num.amber { color: #f59e0b; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th { text-align: left; padding: .55rem .7rem; background: #f8fafc; border-bottom: 2px solid #e2e8f0; font-weight: 600; color: #475569; white-space: nowrap; }
+  td { padding: .5rem .7rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .tag { display: inline-block; padding: .15rem .55rem; border-radius: 12px; font-size: .72rem; font-weight: 600; }
+  .tag.pass { background: #dcfce7; color: #16a34a; }
+  .tag.fail { background: #fef2f2; color: #dc2626; }
+  .tag.dup { background: #fef3c7; color: #d97706; }
+  .tag.new { background: #dbeafe; color: #2563eb; }
+  .tag.p0 { background: #fef2f2; color: #dc2626; }
+  .tag.p1 { background: #fef3c7; color: #d97706; }
+  .bar { background: #e2e8f0; border-radius: 20px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 20px; }
+  .bar-fill.green { background: #22c55e; }
+  .bar-fill.yellow { background: #f59e0b; }
+  .bar-fill.red { background: #ef4444; }
+  .bar-fill.blue { background: #3b82f6; }
+  .bug-block { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: .9rem 1rem; margin: .5rem 0; }
+  .bug-block.dup { background: #fffbeb; border-color: #fde68a; }
+  .bug-block .btitle { font-weight: 600; color: #dc2626; font-size: .9rem; }
+  .bug-block.dup .btitle { color: #d97706; }
+  .bug-block .binfo { font-size: .8rem; color: #475569; margin-top: .3rem; }
+  .bug-block .bmeta { display: flex; gap: 1rem; font-size: .78rem; color: #64748b; margin-top: .4rem; }
+  .req-group { margin-bottom: 1rem; }
+  .req-group .req-title { font-weight: 600; color: #1e293b; }
+  .req-group .req-desc { font-size: .82rem; color: #64748b; margin: .15rem 0 .3rem; }
+  .req-group .tc-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .3rem; }
+  .tc-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .5rem .1rem .35rem; border-radius: 12px; font-size: .72rem; background: #f1f5f9; color: #475569; }
+  .tc-chip .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot.green { background: #22c55e; }
+  .dot.red { background: #ef4444; }
+  .dot.yellow { background: #f59e0b; }
+  .req-tag { display: inline-block; padding: .1rem .45rem; border-radius: 10px; font-size: .7rem; font-weight: 600; background: #e0e7ff; color: #4338ca; margin-right: .3rem; }
+  .step-list { list-style: none; }
+  .step-item { display: flex; align-items: center; gap: .8rem; padding: .6rem 0; border-bottom: 1px solid #f1f5f9; font-size: .85rem; }
+  .step-item:last-child { border-bottom: none; }
+  .step-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: .75rem; font-weight: 700; flex-shrink: 0; }
+  .step-icon.pass { background: #dcfce7; color: #16a34a; }
+  .step-icon.fail { background: #fef2f2; color: #dc2626; }
+  .step-icon.abort { background: #f1f5f9; color: #94a3b8; }
+  .footer { text-align: center; color: #94a3b8; font-size: .8rem; padding: 1.5rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 768px) { .metrics { grid-template-columns: 1fr; } .two-col { grid-template-columns: 1fr; } }
+  .summary-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; font-size: .9rem; color: #166534; }
+  .sig { font-size: .72rem; color: #94a3b8; margin-top: .2rem; }
+  .tc-detail-row { cursor: pointer; }
+  .tc-detail-row:hover { background: #f8fafc; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>&#9881; Insurance Name Truncation &mdash; QA Retest Report</h1>
+  <div class="sub">DME Rocket &bull; Bug Retest Validation &bull; App Config / Insurance Module</div>
+  <div class="meta">
+    <span>&#128197; 2026-05-28 15:33 UTC</span>
+    <span>&#128279; Input: BUG_Retest_Insurance_Name_Truncation.md</span>
+    <span>&#127760; dev.dmerocket.com/insurance</span>
+  </div>
+  <div class="badge red">&#9888; PIPELINE ABORTED &mdash; Deep evaluation (64.3%) below threshold (90%)</div>
+</div>
+
+<div class="summary-box">
+  <strong>&#10003; Bugs filed before gate.</strong> BugFiler ran at step 5 (before deep evaluation at step 6).
+  All 8 failed tests produced JIRA bugs &mdash; 7 new issues + 1 duplicate &mdash; even though the quality gate later aborted the pipeline.
+</div>
+
+<div class="overall-card">
+  <div class="overall-value fail">64.3%</div>
+  <div class="overall-label">Overall Deep Evaluation Accuracy</div>
+  <div class="overall-threshold">Threshold: 90% &bull; Pipeline aborted (bugs already filed)</div>
+</div>
+
+<div class="metrics">
+  <div class="metric-card">
+    <div class="metric-value good">85.7%</div>
+    <div class="metric-label">Test Case Alignment</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-value ok">50.0%</div>
+    <div class="metric-label">Script Alignment</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-value ok">50.0%</div>
+    <div class="metric-label">Bug Accuracy</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>&#128202; Run Summary</h2>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="num purple">8</div><div class="lbl">Requirements</div></div>
+    <div class="stat-box"><div class="num blue">15</div><div class="lbl">Test Cases</div></div>
+    <div class="stat-box"><div class="num blue">9</div><div class="lbl">Scripts Automated</div></div>
+    <div class="stat-box"><div class="num blue">9</div><div class="lbl">Executed</div></div>
+    <div class="stat-box"><div class="num green">1</div><div class="lbl">Passed</div></div>
+    <div class="stat-box"><div class="num red">8</div><div class="lbl">Failed</div></div>
+    <div class="stat-box"><div class="num red">7</div><div class="lbl">Bugs Filed</div></div>
+    <div class="stat-box"><div class="num amber">1</div><div class="lbl">Duplicates</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>&#128220; Bugs Filed in JIRA (8 total &mdash; 7 unique + 1 duplicate)</h2>
+
+  <div class="bug-block">
+    <div class="btitle">SCRUM-67 &mdash; [Test] Application fails to load with invalid URL</div>
+    <div class="binfo"><span class="tag p0">P0</span> &bull; Component: Login &bull; TC-002</div>
+    <div class="bmeta"><strong>Error:</strong> expect(page).toHaveURL(expected) failed. Navigated to Auth0 login instead of 404.</div>
+  </div>
+
+  <div class="bug-block">
+    <div class="btitle">SCRUM-68 &mdash; [Test] Application fails to prompt login on load</div>
+    <div class="binfo"><span class="tag p1">P1</span> &bull; Component: Login &bull; TC-003</div>
+    <div class="bmeta"><strong>Error:</strong> expect(received).toBe(expected) — got Promise {} instead of false</div>
+  </div>
+
+  <div class="bug-block">
+    <div class="btitle">SCRUM-69 &mdash; [Test] Admin User Successful Login fails due to timeout</div>
+    <div class="binfo"><span class="tag p0">P0</span> &bull; Component: Login &bull; TC-004</div>
+    <div class="bmeta"><strong>Error:</strong> Test timeout of 30000ms exceeded.</div>
+  </div>
+
+  <div class="bug-block dup">
+    <div class="btitle">SCRUM-69 (duplicate) &mdash; [Test] Admin User Login with Invalid Credentials</div>
+    <div class="binfo"><span class="tag p1">P1</span> &bull; TC-005 &bull; Duplicate of SCRUM-69</div>
+    <div class="bmeta">Regression comment added to existing issue.</div>
+  </div>
+
+  <div class="bug-block">
+    <div class="btitle">SCRUM-70 &mdash; [Test] App Config menu item not visible after login</div>
+    <div class="binfo"><span class="tag p1">P1</span> &bull; Component: Menu &bull; TC-006</div>
+    <div class="bmeta"><strong>Error:</strong> Test timeout of 30000ms exceeded.</div>
+  </div>
+
+  <div class="bug-block">
+    <div class="btitle">SCRUM-71 &mdash; [Test] App Config Menu Not Displayed Without Login</div>
+    <div class="binfo"><span class="tag p1">P1</span> &bull; Component: App Config &bull; TC-007</div>
+    <div class="bmeta"><strong>Error:</strong> expect(received).toBe(expected) — got Promise {} instead of false</div>
+  </div>
+
+  <div class="bug-block">
+    <div class="btitle">SCRUM-72 &mdash; [Test] Navigate to Insurance Listing Page timeout</div>
+    <div class="binfo"><span class="tag p1">P1</span> &bull; Component: Insurance Listing &bull; TC-008</div>
+    <div class="bmeta"><strong>Error:</strong> Test timeout of 30000ms exceeded.</div>
+  </div>
+
+  <div class="bug-block">
+    <div class="btitle">SCRUM-73 &mdash; [Test] Navigate to Insurance Listing Page Without Login</div>
+    <div class="binfo"><span class="tag p1">P1</span> &bull; Component: Insurance Listing &bull; TC-009</div>
+    <div class="bmeta"><strong>Error:</strong> expect(received).toBe(expected) — got Promise {}</div>
+  </div>
+
+  <p style="margin-top:.8rem;font-size:.82rem;color:#64748b">
+    All bugs have full structured JIRA descriptions: steps to reproduce, expected/actual results, error logs, environment (Chrome/Win10), and test data used.
+  </p>
+</div>
+
+<div class="two-col">
+<div class="section">
+  <h2>&#128196; Requirements (8)</h2>
+  <div class="req-group"><span class="req-tag">P0</span><span class="req-title">REQ-001: Application Load</span><div class="req-desc">The application shall load successfully at https://dev.dmerocket.com/insurance with a valid login.</div><div class="tc-list"><span class="tc-chip"><span class="dot green"></span>TC-001</span><span class="tc-chip"><span class="dot red"></span>TC-002</span><span class="tc-chip"><span class="dot red"></span>TC-003</span></div></div>
+  <div class="req-group"><span class="req-tag">P0</span><span class="req-title">REQ-002: Admin User Login</span><div class="req-desc">Admin user shall be able to log in using the provided credentials.</div><div class="tc-list"><span class="tc-chip"><span class="dot red"></span>TC-004</span><span class="tc-chip"><span class="dot red"></span>TC-005</span></div></div>
+  <div class="req-group"><span class="req-tag">P1</span><span class="req-title">REQ-003: Display App Config Menu</span><div class="req-desc">After login, the top menu bar shall display the 'App Config' menu item.</div><div class="tc-list"><span class="tc-chip"><span class="dot red"></span>TC-006</span><span class="tc-chip"><span class="dot red"></span>TC-007</span></div></div>
+  <div class="req-group"><span class="req-tag">P1</span><span class="req-title">REQ-004: Navigate to Insurance Listing Page</span><div class="req-desc">Navigating to App Config → Insurance shall load the Insurance listing page.</div><div class="tc-list"><span class="tc-chip"><span class="dot red"></span>TC-008</span><span class="tc-chip"><span class="dot red"></span>TC-009</span></div></div>
+  <div class="req-group"><span class="req-tag">P0</span><span class="req-title">REQ-005: Persist Full Insurance Name on Create</span><div class="req-desc">The 'Name' field on Add Insurance shall accept 'BCBS TPA SOUTHWEST SERVICE ADMINISTRATORS (MID-LEVEL)' without truncation.</div><div class="tc-list"><span class="tc-chip"><span class="dot yellow"></span>TC-010</span><span class="tc-chip"><span class="dot yellow"></span>TC-011</span></div></div>
+  <div class="req-group"><span class="req-tag">P0</span><span class="req-title">REQ-006: Persist Full Insurance Name on Edit</span><div class="req-desc">The 'Name' field on Edit Insurance shall accept and persist updated long name values.</div><div class="tc-list"><span class="tc-chip"><span class="dot yellow"></span>TC-012</span></div></div>
+  <div class="req-group"><span class="req-tag">P0</span><span class="req-title">REQ-007: Display Full Insurance Name in Listing</span><div class="req-desc">Listing page shall display the full insurance name for all records.</div><div class="tc-list"><span class="tc-chip"><span class="dot yellow"></span>TC-013</span></div></div>
+  <div class="req-group"><span class="req-tag">P1</span><span class="req-title">REQ-008: No Truncation in Listing UI</span><div class="req-desc">Long names shall not be clipped, hidden, or truncated in the listing UI.</div><div class="tc-list"><span class="tc-chip"><span class="dot yellow"></span>TC-014</span><span class="tc-chip"><span class="dot yellow"></span>TC-015</span></div></div>
+</div>
+
+<div class="section">
+  <h2>&#128203; Test Execution (9 scripts)</h2>
+  <table>
+    <thead><tr><th>#</th><th>Test</th><th>Status</th><th>Bug</th></tr></thead>
+    <tbody>
+      <tr><td>TC-001</td><td>Successful Application Load</td><td><span class="tag pass">PASS</span></td><td>&mdash;</td></tr>
+      <tr><td>TC-002</td><td>Application Load with Invalid URL</td><td><span class="tag fail">FAIL</span></td><td>SCRUM-67</td></tr>
+      <tr><td>TC-003</td><td>Application Load without Login</td><td><span class="tag fail">FAIL</span></td><td>SCRUM-68</td></tr>
+      <tr><td>TC-004</td><td>Admin User Successful Login</td><td><span class="tag fail">FAIL</span></td><td>SCRUM-69</td></tr>
+      <tr><td>TC-005</td><td>Admin User Login with Invalid Credentials</td><td><span class="tag fail">FAIL</span></td><td><span class="tag dup">dup</span> SCRUM-69</td></tr>
+      <tr><td>TC-006</td><td>Display App Config Menu After Login</td><td><span class="tag fail">FAIL</span></td><td>SCRUM-70</td></tr>
+      <tr><td>TC-007</td><td>App Config Menu Not Displayed Without Login</td><td><span class="tag fail">FAIL</span></td><td>SCRUM-71</td></tr>
+      <tr><td>TC-008</td><td>Navigate to Insurance Listing Page</td><td><span class="tag fail">FAIL</span></td><td>SCRUM-72</td></tr>
+      <tr><td>TC-009</td><td>Navigate to Insurance Listing Page Without Login</td><td><span class="tag fail">FAIL</span></td><td>SCRUM-73</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:.8rem;font-size:.82rem;color:#64748b">
+    <strong>6 test cases not automated</strong> (TC-010 through TC-015): the insurance Module-specific tests (create/edit/listing verification) were not auto-generated as scripts since the LLM focused on Login flow. These require manual scripting or playwright page objects for the DME Rocket insurance forms.
+  </p>
+
+  <h3 style="margin-top:1.2rem">Pipeline Steps</h3>
+  <ul class="step-list">
+    <li class="step-item"><span class="step-icon pass">&#10003;</span><span style="flex:1"><strong>1. RequirementAnalyser</strong> &mdash; 8 requirements from bug doc</span></li>
+    <li class="step-item"><span class="step-icon pass">&#10003;</span><span style="flex:1"><strong>2. TestCaseGenerator</strong> &mdash; 15 test cases</span></li>
+    <li class="step-item"><span class="step-icon pass">&#10003;</span><span style="flex:1"><strong>3. ScriptGenerator</strong> &mdash; 9 scripts (6 TC not automated)</span></li>
+    <li class="step-item"><span class="step-icon pass">&#10003;</span><span style="flex:1"><strong>4. ScriptExecutor</strong> &mdash; 1 pass, 8 fail</span></li>
+    <li class="step-item"><span class="step-icon pass">&#10003;</span><span style="flex:1"><strong>5. BugFiler</strong> &mdash; 7 unique + 1 duplicate in JIRA</span></li>
+    <li class="step-item"><span class="step-icon abort">&#10007;</span><span style="flex:1"><strong>6. Deep Evaluation</strong> &mdash; 64.3% &lt; 90% threshold</span></li>
+  </ul>
+</div>
+</div>
+
+<div class="section">
+  <h2>&#128290; Test Case Deep Evaluation Details</h2>
+  <table>
+    <thead><tr><th>TC</th><th>Title</th><th>Alignment</th><th>Bar</th></tr></thead>
+    <tbody>
+      <tr><td>TC-001</td><td>Successful Application Load</td><td>83.3%</td><td><div class="bar"><div class="bar-fill green" style="width:83.3%"></div></div></td></tr>
+      <tr><td>TC-002</td><td>Application Load with Invalid URL</td><td>70.0%</td><td><div class="bar"><div class="bar-fill yellow" style="width:70%"></div></div></td></tr>
+      <tr><td>TC-003</td><td>Application Load without Login</td><td>75.0%</td><td><div class="bar"><div class="bar-fill yellow" style="width:75%"></div></div></td></tr>
+      <tr><td>TC-004</td><td>Admin User Successful Login</td><td>87.5%</td><td><div class="bar"><div class="bar-fill green" style="width:87.5%"></div></div></td></tr>
+      <tr><td>TC-005</td><td>Admin User Login with Invalid Credentials</td><td>75.0%</td><td><div class="bar"><div class="bar-fill yellow" style="width:75%"></div></div></td></tr>
+      <tr><td>TC-006</td><td>Display App Config Menu After Login</td><td>83.3%</td><td><div class="bar"><div class="bar-fill green" style="width:83.3%"></div></div></td></tr>
+      <tr><td>TC-007</td><td>App Config Menu Not Displayed Without Login</td><td>68.8%</td><td><div class="bar"><div class="bar-fill yellow" style="width:68.8%"></div></div></td></tr>
+      <tr><td>TC-008</td><td>Navigate to Insurance Listing Page</td><td>100%</td><td><div class="bar"><div class="bar-fill green" style="width:100%"></div></div></td></tr>
+      <tr><td>TC-009</td><td>Navigate to Insurance Listing Page Without Login</td><td>85.7%</td><td><div class="bar"><div class="bar-fill green" style="width:85.7%"></div></div></td></tr>
+      <tr><td>TC-010</td><td>Persist Full Insurance Name on Create</td><td>100%</td><td><div class="bar"><div class="bar-fill green" style="width:100%"></div></div></td></tr>
+      <tr><td>TC-011</td><td>Persist Short Insurance Name on Create</td><td>85.7%</td><td><div class="bar"><div class="bar-fill green" style="width:85.7%"></div></div></td></tr>
+      <tr><td>TC-012</td><td>Persist Full Insurance Name on Edit</td><td>100%</td><td><div class="bar"><div class="bar-fill green" style="width:100%"></div></div></td></tr>
+      <tr><td>TC-013</td><td>Display Full Insurance Name in Listing</td><td>100%</td><td><div class="bar"><div class="bar-fill green" style="width:100%"></div></div></td></tr>
+      <tr><td>TC-014</td><td>No Truncation in Listing UI</td><td>100%</td><td><div class="bar"><div class="bar-fill green" style="width:100%"></div></div></td></tr>
+      <tr><td>TC-015</td><td>Truncated Name in Listing UI</td><td>71.4%</td><td><div class="bar"><div class="bar-fill yellow" style="width:71.4%"></div></div></td></tr>
+    </tbody>
+  </table>
+  <div class="sig">Alignment = Jaccard similarity (title + steps vs requirement acceptance criteria)</div>
+</div>
+
+<div class="section">
+  <h2>&#128210; Acceptance Criteria Verification</h2>
+  <table>
+    <thead><tr><th>Criteria</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>TC-004 pass &mdash; long name saves on Create</td><td><span class="tag fail">NOT VERIFIED</span></td><td>Test timed out; DME Rocket not reachable</td></tr>
+      <tr><td>TC-005 pass &mdash; long name persists on Create</td><td><span class="tag fail">NOT VERIFIED</span></td><td>No script generated for this test case</td></tr>
+      <tr><td>TC-010 pass &mdash; long name saves on Edit</td><td><span class="tag fail">NOT VERIFIED</span></td><td>No script generated</td></tr>
+      <tr><td>TC-011 pass &mdash; long name persists on Edit</td><td><span class="tag fail">NOT VERIFIED</span></td><td>No script generated</td></tr>
+      <tr><td>TC-006 pass &mdash; full name in listing after Create</td><td><span class="tag fail">NOT VERIFIED</span></td><td>No script generated</td></tr>
+      <tr><td>TC-012 pass &mdash; full name in listing after Edit</td><td><span class="tag fail">NOT VERIFIED</span></td><td>No script generated</td></tr>
+      <tr><td>TC-015 pass &mdash; names beyond 50-char saved</td><td><span class="tag fail">NOT VERIFIED</span></td><td>No script generated</td></tr>
+      <tr><td>TC-016 (short name) no regression</td><td><span class="tag fail">NOT VERIFIED</span></td><td>No script generated</td></tr>
+      <tr><td>Truncated value not appearing</td><td><span class="tag fail">NOT VERIFIED</span></td><td>Requires manual validation on dev.dmerocket.com</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:.6rem;font-size:.82rem;color:#64748b">
+    None of the acceptance criteria could be verified automatically because the Playwright scripts could not reach dev.dmerocket.com (Auth0-redirected, timeouts). <strong>Manual retest is required.</strong>
+  </p>
+</div>
+
+<div class="section">
+  <h2>&#128230; Output Artifacts</h2>
+  <table>
+    <thead><tr><th>Artifact</th><th>Path</th></tr></thead>
+    <tbody>
+      <tr><td>Pipeline Context</td><td><code>tmp/context.json</code></td></tr>
+      <tr><td>Generated Test Cases</td><td><code>generated_test_cases.md</code></td></tr>
+      <tr><td>Playwright Results</td><td><code>playwright-results.json</code></td></tr>
+      <tr><td>Deep Eval Report</td><td><code>deep_evaluation_report.html</code></td></tr>
+      <tr><td>Playwright Spec</td><td><code>tests/specs/login.spec.ts</code></td></tr>
+      <tr><td>Page Object</td><td><code>tests/pages/LoginPage.ts</code></td></tr>
+      <tr><td>Allure Report</td><td><code>allure-report/index.html</code></td></tr>
+      <tr><td>Test Data</td><td><code>BUG_Retest_Insurance_Name_Truncation.md</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  Generated by QA Workflow AI Agent &mdash; Insurance Name Truncation Retest &bull; 2026-05-28
+</div>
+
+</div>
+</body>
+</html>

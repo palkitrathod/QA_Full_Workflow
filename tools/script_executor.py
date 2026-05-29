@@ -55,44 +55,48 @@ class ScriptExecutor:
             
         execution_time = (time.time() - start_time) * 1000
 
-        # Parse JSON from results file
-        test_cases_map = {}
+        # Parse all spec results from Playwright JSON (handles nested suites)
+        flat_specs = []
+        def extract_specs(suites):
+            for suite in suites:
+                flat_specs.extend(suite.get("specs", []))
+                if suite.get("suites"):
+                    extract_specs(suite["suites"])
         if os.path.exists(results_file):
             try:
                 with open(results_file, "r", encoding="utf-8") as f:
                     pw_data = json.load(f)
-                for suite in pw_data.get("suites", []):
-                    for spec in suite.get("specs", []):
-                        if spec.get("tests") and spec["tests"][0].get("results"):
-                            res = spec["tests"][0]["results"][0]
-                            test_results[spec["title"]] = {
-                                "status": res.get("status"),
-                                "error": res.get("error", {}).get("message") if res.get("error") else None
-                            }
+                extract_specs(pw_data.get("suites", []))
+                for spec in flat_specs:
+                    if spec.get("tests") and spec["tests"][0].get("results"):
+                        res = spec["tests"][0]["results"][0]
+                        test_results[spec["title"]] = {
+                            "status": res.get("status"),
+                            "error": res.get("error", {}).get("message") if res.get("error") else None
+                        }
             except Exception as e:
                 print(f"[WARN] Could not parse playwright-results.json: {e}")
         else:
             print("[WARN] playwright-results.json not found")
 
-        # Build test case lookup: test_case_id → title
-        all_cases = self.context_manager.get_test_cases()
-        for tc in all_cases:
-            test_cases_map[tc.get("id")] = tc.get("title")
-                
-        # Update context by matching script → test_case title → spec title
-        for script in scripts:
-            tc_id = script.get("test_case_id")
-            spec_title = test_cases_map.get(tc_id)
-            match = test_results.get(spec_title) if spec_title else None
-            
-            if match:
-                pw_status = match["status"]
-                if pw_status == "passed":
-                    script["status"] = "passed"
+        # Match scripts to test results by ordering (scripts and spec tests are in the same order)
+        spec_titles_ordered = list(test_results.keys())
+        for idx, script in enumerate(scripts):
+            if idx < len(spec_titles_ordered):
+                spec_title = spec_titles_ordered[idx]
+                match = test_results.get(spec_title)
+                if match:
+                    pw_status = match["status"]
+                    script["status"] = "passed" if pw_status == "passed" else "failed"
+                    if pw_status != "passed":
+                        script["error_log"] = match.get("error")
+                    script["execution_time_ms"] = execution_time / max(len(scripts_to_run), 1)
                 else:
                     script["status"] = "failed"
-                    script["error_log"] = match.get("error")
-                script["execution_time_ms"] = execution_time / max(len(scripts_to_run), 1)
+                    script["error_log"] = "No matching Playwright result found"
+            else:
+                script["status"] = "failed"
+                script["error_log"] = "No matching Playwright result found"
                 
         self.context_manager.update_scripts(scripts)
         

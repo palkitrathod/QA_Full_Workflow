@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Name Truncation — Full QA Verification Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1a1a2e; padding: 1.5rem; }
+  .container { max-width: 1300px; margin: 0 auto; }
+  .header { background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 2rem 2.5rem; border-radius: 16px; margin-bottom: 1.2rem; }
+  .header h1 { font-size: 1.5rem; }
+  .header .sub { opacity: .75; font-size: .85rem; margin-top: .3rem; }
+  .header .meta { display: flex; gap: 1.5rem; font-size: .78rem; opacity: .65; margin-top: .6rem; flex-wrap: wrap; }
+  .overall-card { background: #fff; border-radius: 16px; padding: 1.8rem; margin-bottom: 1.2rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .overall-value { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+  .overall-value.fail { color: #ef4444; }
+  .overall-label { font-size: .95rem; color: #64748b; margin-top: .3rem; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.2rem; }
+  .metric-card { background: #fff; border-radius: 12px; padding: 1.3rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .metric-value { font-size: 2rem; font-weight: 700; }
+  .metric-value.good { color: #22c55e; }
+  .metric-value.ok { color: #f59e0b; }
+  .metric-value.bad { color: #ef4444; }
+  .metric-label { font-size: .82rem; color: #64748b; margin-top: .2rem; }
+  .section { background: #fff; border-radius: 12px; padding: 1.3rem 1.5rem; margin-bottom: 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .section h2 { font-size: 1.1rem; margin-bottom: .8rem; padding-bottom: .5rem; border-bottom: 2px solid #f1f5f9; display: flex; align-items: center; gap: .5rem; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+  .stat-box { background: #f8fafc; border-radius: 10px; padding: .8rem; text-align: center; }
+  .stat-box .num { font-size: 1.5rem; font-weight: 700; }
+  .stat-box .lbl { font-size: .72rem; color: #64748b; margin-top: .15rem; }
+  .num.green { color: #22c55e; } .num.red { color: #ef4444; } .num.blue { color: #3b82f6; } .num.purple { color: #8b5cf6; } .num.amber { color: #f59e0b; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th { text-align: left; padding: .5rem .6rem; background: #f8fafc; border-bottom: 2px solid #e2e8f0; font-weight: 600; color: #475569; white-space: nowrap; }
+  td { padding: .45rem .6rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .tag { display: inline-block; padding: .12rem .5rem; border-radius: 12px; font-size: .7rem; font-weight: 600; }
+  .tag.pass { background: #dcfce7; color: #16a34a; }
+  .tag.fail { background: #fef2f2; color: #dc2626; }
+  .tag.warn { background: #fef3c7; color: #d97706; }
+  .tag.p0 { background: #fef2f2; color: #dc2626; }
+  .tag.p1 { background: #fef3c7; color: #d97706; }
+  .tag.p2 { background: #dbeafe; color: #2563eb; }
+  .tag.local { background: #f3e8ff; color: #7c3aed; }
+  .bar { background: #e2e8f0; border-radius: 20px; height: 7px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 20px; }
+  .bar-fill.green { background: #22c55e; }
+  .bar-fill.yellow { background: #f59e0b; }
+  .bar-fill.red { background: #ef4444; }
+  .bar-fill.blue { background: #3b82f6; }
+  .bug { background: #fef2f2; border-left: 3px solid #ef4444; border-radius: 6px; padding: .7rem .9rem; margin: .4rem 0; }
+  .bug .btitle { font-weight: 600; color: #dc2626; font-size: .85rem; }
+  .bug .binfo { font-size: .78rem; color: #475569; margin-top: .2rem; }
+  .badge { display: inline-block; padding: .2rem .7rem; border-radius: 20px; font-size: .7rem; font-weight: 600; }
+  .badge.red { background: #fef2f2; color: #dc2626; }
+  .badge.amber { background: #fef3c7; color: #d97706; }
+  .badge.green { background: #dcfce7; color: #16a34a; }
+  .badge.purple { background: #f3e8ff; color: #7c3aed; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  .three-col-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+  .ac-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: .8rem; background: #fafafa; }
+  .ac-box.pass { border-color: #86efac; background: #f0fdf4; }
+  .ac-box.fail { border-color: #fecaca; background: #fef2f2; }
+  .ac-box.warn { border-color: #fde68a; background: #fffbeb; }
+  .ac-box .ac-title { font-weight: 600; font-size: .82rem; }
+  .ac-box .ac-result { font-size: .8rem; margin-top: .2rem; }
+  .ac-box .ac-note { font-size: .72rem; color: #64748b; margin-top: .2rem; }
+  @media (max-width: 768px) { .three-col, .two-col, .three-col-grid { grid-template-columns: 1fr; } }
+  .footer { text-align: center; color: #94a3b8; font-size: .75rem; padding: 1.2rem; }
+  .issue-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: .9rem 1rem; margin-bottom: 1.2rem; font-size: .85rem; color: #166534; }
+  .issue-box.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>&#9881; Insurance Name Truncation — Full QA Verification Report</h1>
+  <div class="sub">DME Rocket &bull; Bug Retest Validation &bull; App Config / Insurance Module</div>
+  <div class="meta">
+    <span>&#128197; 2026-05-28</span>
+    <span>&#128279; Input: BUG_Retest_Insurance_Name_Truncation.md</span>
+    <span>&#127760; dev.dmerocket.com/insurance</span>
+    <span>&#128220; Bugs filed locally (not JIRA)</span>
+  </div>
+  <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+    <span class="badge red">&#9888; Pipeline aborted (66.3% &lt; 90%)</span>
+    <span class="badge purple">&#128230; 7 local bugs saved in bugs.md</span>
+    <span class="badge amber">&#128269; 9 verification tests attempted</span>
+  </div>
+</div>
+
+<div class="issue-box">
+  <strong>&#9989; Local bug filing enabled.</strong> Set <code>$env:LOCAL_BUGS_FILE</code> to write bugs to <code>bugs.md</code> instead of JIRA.
+  All 7 failed pipeline tests produced structured bug reports in the local file.
+</div>
+
+<div class="overall-card">
+  <div class="overall-value fail">66.3%</div>
+  <div class="overall-label">Overall Deep Evaluation Accuracy</div>
+  <div class="overall-label" style="font-size:.78rem;color:#94a3b8">Threshold: 90% &bull; Test-case alignment: 76.8% &bull; Script alignment: 50.0% &bull; Bug accuracy: 50.0%</div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-box"><div class="num purple">18</div><div class="lbl">Requirements</div></div>
+  <div class="stat-box"><div class="num blue">20</div><div class="lbl">Test Cases</div></div>
+  <div class="stat-box"><div class="num blue">7</div><div class="lbl">Scripts Automated</div></div>
+  <div class="stat-box"><div class="num red">7</div><div class="lbl">Scripts Failed</div></div>
+  <div class="stat-box"><div class="num red">7</div><div class="lbl">Bugs (Local)</div></div>
+  <div class="stat-box"><div class="num red">9</div><div class="lbl">Verification: All Failed</div></div>
+</div>
+
+<div class="two-col">
+<div class="section">
+  <h2>&#128220; Local Bugs (7 — no JIRA used)</h2>
+  <div class="bug"><div class="btitle">BUG-LOCAL-TC-001 &mdash; [Test] Application fails to load due to locator issue</div><div class="binfo"><span class="tag p1">P1</span> &bull; Component: Application Load &bull; TC-001</div></div>
+  <div class="bug"><div class="btitle">BUG-LOCAL-TC-002 &mdash; [Test] Application fails to load with invalid URL</div><div class="binfo"><span class="tag p0">P0</span> &bull; Component: Login &bull; TC-002 &bull; URL redirected to Auth0 login instead of 404</div></div>
+  <div class="bug"><div class="btitle">BUG-LOCAL-TC-003 &mdash; [Test] Application Load with Invalid Credentials fails</div><div class="binfo"><span class="tag p0">P0</span> &bull; Component: Login &bull; TC-003 &bull; Timeout</div></div>
+  <div class="bug"><div class="btitle">BUG-LOCAL-TC-004 &mdash; [Test] Application Load with No Credentials fails</div><div class="binfo"><span class="tag p0">P0</span> &bull; Component: Login &bull; TC-004 &bull; Timeout</div></div>
+  <div class="bug"><div class="btitle">BUG-LOCAL-TC-005 &mdash; [Test] Admin user login test timed out</div><div class="binfo"><span class="tag p1">P1</span> &bull; Component: Login &bull; TC-005 &bull; Timeout</div></div>
+  <div class="bug"><div class="btitle">BUG-LOCAL-TC-006 &mdash; [Test] Admin User Login with Incorrect Password timed out</div><div class="binfo"><span class="tag p0">P0</span> &bull; Component: Login &bull; TC-006 &bull; Timeout</div></div>
+  <div class="bug"><div class="btitle">BUG-LOCAL-TC-007 &mdash; [Test] Admin User Login with Incorrect Username fails</div><div class="binfo"><span class="tag p1">P1</span> &bull; Component: Login &bull; TC-007 &bull; Timeout</div></div>
+  <p style="margin-top:.5rem;font-size:.78rem;color:#64748b">Full details: steps to reproduce, expected/actual results, error logs, environment, test data in <code>bugs.md</code></p>
+</div>
+
+<div class="section">
+  <h2>&#128204; Acceptance Criteria Verification</h2>
+  <p style="font-size:.8rem;color:#64748b;margin-bottom:.8rem">Playwright attempted to verify all criteria against live dev.dmerocket.com. All 9 tests failed due to UI selector mismatches — not necessarily application bugs.</p>
+
+  <div class="three-col-grid">
+    <div class="ac-box fail">
+      <div class="ac-title">TC-004: Create with long name</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; 3 error elements on page</div>
+      <div class="ac-note">Likely validation notices, not actual errors. Needs manual check.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-005: Verify saved name (create)</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; Table col 2 = phone</div>
+      <div class="ac-note">Table column structure differs from assumed layout.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-006: Full name in listing</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; Text locator not found</div>
+      <div class="ac-note">Template literal used single quotes instead of backticks in spec.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-007: No truncation in listing</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; Same as TC-006</div>
+      <div class="ac-note">Fixed in latest version of the spec script.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-010: Edit with long name</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; Edit button not found</div>
+      <div class="ac-note">DME Rocket UI uses different selector for Edit action.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-011: Verify updated name (edit)</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; Table col 2 = phone</div>
+      <div class="ac-note">Same table structure issue as TC-005.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-015: 51+ chars saves</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; 3 error elements</div>
+      <div class="ac-note">Script could not isolate form submission errors from page-level notices.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-016: Short name regression</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; 3 error elements</div>
+      <div class="ac-note">Same issue — error selectors too broad.</div>
+    </div>
+    <div class="ac-box fail">
+      <div class="ac-title">TC-017: Special characters</div>
+      <div class="ac-result"><span class="tag fail">FAILED</span> &mdash; 3 error elements</div>
+      <div class="ac-note">Same issue — error selectors too broad.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="section">
+  <h2>&#128270; Verification Analysis — Root Causes of Automation Failures</h2>
+  <table>
+    <thead><tr><th>Issue</th><th>Detail</th><th>Fix Needed</th></tr></thead>
+    <tbody>
+      <tr><td>Table column mapping</td><td>DME Rocket listing: col 1 = phone, col 2 = name, col 3 = status, etc. Script assumed col 2 = name directly</td><td>Use header-based selectors like <code>th:has-text("Name")</code> + adjacent <code>td</code></td></tr>
+      <tr><td>Error detection too broad</td><td><code>.error, .alert-danger</code> catches 3 page-level elements (info/warning banners), not actual form validation errors</td><td>Scope error detection to the form modal or inline validation messages</td></tr>
+      <tr><td>Edit button not found</td><td>DME Rocket likely uses icon buttons or row actions, not a simple "Edit" text button</td><td>Inspect page for actual Edit trigger (e.g. pencil icon, row click, dropdown menu)</td></tr>
+      <tr><td>Template literal syntax</td><td><code>locator('text=${VAR}')</code> — single quotes don't interpolate; needs backticks: <code>locator(\`text=${VAR}\`)</code></td><td>Use backtick template literals in the spec</td></tr>
+      <tr><td>Navigation after login</td><td>Auth0 redirect goes to insurance page, but "App Config" menu selector may differ</td><td>Inspect the actual post-login page structure for the correct navigation path</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="two-col">
+<div class="section">
+  <h2>&#128196; Requirements (18)</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Title</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td>REQ-001</td><td>Application Load</td><td><span class="tag p0">P0</span></td></tr>
+      <tr><td>REQ-002</td><td>Admin User Login</td><td><span class="tag p0">P0</span></td></tr>
+      <tr><td>REQ-003</td><td>Display App Config Menu</td><td><span class="tag p1">P1</span></td></tr>
+      <tr><td>REQ-004</td><td>Navigate to Insurance Listing</td><td><span class="tag p1">P1</span></td></tr>
+      <tr><td>REQ-005</td><td>Persist Full Name on Create</td><td><span class="tag p0">P0</span></td></tr>
+      <tr><td>REQ-006</td><td>Persist Full Name on Edit</td><td><span class="tag p0">P0</span></td></tr>
+      <tr><td>REQ-007</td><td>Display Full Name in Listing</td><td><span class="tag p0">P0</span></td></tr>
+      <tr><td>REQ-008</td><td>No Truncation in Listing UI</td><td><span class="tag p1">P1</span></td></tr>
+      <tr><td colspan="3" style="font-size:.75rem;color:#94a3b8;text-align:center">+ 10 more requirements from LLM extraction</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>&#128203; Pipeline Scripts (7 all failed)</h2>
+  <table>
+    <thead><tr><th>#</th><th>Test</th><th>Status</th><th>Bug</th></tr></thead>
+    <tbody>
+      <tr><td>TC-001</td><td>Application Load</td><td><span class="tag fail">FAIL</span></td><td>BUG-LOCAL-TC-001</td></tr>
+      <tr><td>TC-002</td><td>Invalid URL</td><td><span class="tag fail">FAIL</span></td><td>BUG-LOCAL-TC-002</td></tr>
+      <tr><td>TC-003</td><td>Invalid Credentials</td><td><span class="tag fail">FAIL</span></td><td>BUG-LOCAL-TC-003</td></tr>
+      <tr><td>TC-004</td><td>No Credentials</td><td><span class="tag fail">FAIL</span></td><td>BUG-LOCAL-TC-004</td></tr>
+      <tr><td>TC-005</td><td>Admin Login</td><td><span class="tag fail">FAIL</span></td><td>BUG-LOCAL-TC-005</td></tr>
+      <tr><td>TC-006</td><td>Wrong Password</td><td><span class="tag fail">FAIL</span></td><td>BUG-LOCAL-TC-006</td></tr>
+      <tr><td>TC-007</td><td>Wrong Username</td><td><span class="tag fail">FAIL</span></td><td>BUG-LOCAL-TC-007</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:.5rem;font-size:.75rem;color:#64748b">Note: Pipeline generated 7 scripts for login flow only. The 13 insurance-specific test cases (TC-008 through TC-020) were not auto-generated since the LLM focused on login flows.</p>
+</div>
+</div>
+
+<div class="section">
+  <h2>&#128230; Output Artifacts</h2>
+  <table>
+    <thead><tr><th>Artifact</th><th>Path (relative to run folder)</th></tr></thead>
+    <tbody>
+      <tr><td>Local Bug Reports</td><td><code>bugs.md</code> &mdash; 7 structured bug reports (no JIRA)</td></tr>
+      <tr><td>Pipeline Context</td><td><code>tmp/context.json</code> &mdash; full run state</td></tr>
+      <tr><td>Generated Test Cases</td><td><code>generated_test_cases.md</code> &mdash; 20 TCs</td></tr>
+      <tr><td>Pipeline Playwright Results</td><td><code>playwright-results.json</code> &mdash; 7 script results</td></tr>
+      <tr><td>Deep Eval Report</td><td><code>deep_evaluation_report.html</code></td></tr>
+      <tr><td>Allure Report</td><td><code>allure-report/index.html</code></td></tr>
+      <tr><td>Allure Raw Data</td><td><code>allure-results/</code></td></tr>
+      <tr><td>Verification Screenshots</td><td><code>test-results/</code> (in workspace root)</td></tr>
+      <tr><td>Verification Videos</td><td><code>test-results/</code> (in workspace root)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>&#128204; Acceptance Criteria — Executive Summary</h2>
+  <table>
+    <thead><tr><th>Criterion</th><th>Automation Verdict</th><th>Manual Verdict</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>TC-004: Long name saves on Create</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Selector mismatch; needs manual retest on dev.dmerocket.com</td></tr>
+      <tr><td>TC-005: Long name persists on Create</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Table column mapping issue</td></tr>
+      <tr><td>TC-006: Full name in listing (create)</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Text locator used wrong quote style</td></tr>
+      <tr><td>TC-007: No truncation in listing</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Same selector issue as TC-006</td></tr>
+      <tr><td>TC-010: Long name saves on Edit</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Edit button not found; unknown DME Rocket Edit UX</td></tr>
+      <tr><td>TC-011: Updated name persists (edit)</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Table column mapping issue</td></tr>
+      <tr><td>TC-012: Full name in listing (edit)</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Depends on TC-010 succeeding first</td></tr>
+      <tr><td>TC-013: No truncation after edit</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Depends on TC-010 succeeding first</td></tr>
+      <tr><td>TC-014: 50-char boundary</td><td><span class="tag warn">SKIPPED</span></td><td><span class="tag warn">NOT TESTED</span></td><td>Not run; needs form selector fixes first</td></tr>
+      <tr><td>TC-015: 51+ chars</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>3 error elements masked the result</td></tr>
+      <tr><td>TC-016: Short name regression</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>3 error elements masked the result</td></tr>
+      <tr><td>TC-017: Special characters</td><td><span class="tag fail">AUTO FAIL</span></td><td><span class="tag warn">NOT TESTED</span></td><td>3 error elements masked the result</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:.6rem;font-size:.8rem;color:#64748b">
+    <strong>Conclusion:</strong> Automated verification could not conclusively validate the fix because Playwright scripts lacked precise DME Rocket UI selectors.
+    All automation failures are script-side issues (selector mismatches, broad error detection), <strong>not necessarily application bugs</strong>.
+    <strong>Manual retest on dev.dmerocket.com is still required</strong> to confirm the truncation fix.
+  </p>
+</div>
+
+<div class="footer">
+  Generated by QA Workflow AI Agent &bull; run_insurance_verification_20260528_154940 &bull; 2026-05-28
+</div>
+
+</div>
+</body>
+</html>

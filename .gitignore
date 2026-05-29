@@ -29,6 +29,9 @@ playwright-results.json
 # Generated artifacts (regenerated each run)
 generated_test_cases.md
 
+# Run-time context (may contain secrets/API keys)
+**/tmp/
+
 # IDE
 .vscode/
 .idea/

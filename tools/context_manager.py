@@ -23,6 +23,7 @@ class ContextManager:
                 "source_ticket_id": None,
                 "target_app_url": None,
                 "requirements": [],
+                "evaluations": [],
                 "test_cases": [],
                 "scripts": [],
                 "bugs": [],
@@ -126,4 +127,19 @@ class ContextManager:
         return self._read_context()
 
     def update_full_context(self, ctx: Dict[str, Any]) -> None:
+        self._write_context(ctx)
+
+    def get_evaluations(self) -> List[Dict[str, Any]]:
+        return self._read_context().get("evaluations", [])
+
+    def update_evaluations(self, evaluations: List[Dict[str, Any]]) -> None:
+        ctx = self._read_context()
+        ctx["evaluations"] = evaluations
+        self._write_context(ctx)
+
+    def append_evaluation(self, evaluation: Dict[str, Any]) -> None:
+        ctx = self._read_context()
+        evs = ctx.get("evaluations", [])
+        evs.append(evaluation)
+        ctx["evaluations"] = evs
         self._write_context(ctx)

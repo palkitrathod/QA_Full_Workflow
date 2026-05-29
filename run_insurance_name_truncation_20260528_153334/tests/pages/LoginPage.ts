@@ -7,17 +7,23 @@ export class LoginPage {
     await this.page.goto('https://dev.dmerocket.com/insurance');
   }
 
-  async enterCredentials(username: string, password: string) {
+  async enterUsername(username: string) {
     await this.page.fill('[data-test="username"]', username);
+  }
+
+  async enterPassword(password: string) {
     await this.page.fill('[data-test="password"]', password);
+  }
+
+  async clickLogin() {
     await this.page.click('[data-test="login-button"]');
   }
 
   async getErrorMessage() {
-    return this.page.locator('[data-test="error"]').innerText();
+    return this.page.locator('[data-test="error"]').textContent();
   }
 
-  async isDashboardVisible() {
-    return this.page.locator('[data-test="inventory-container"]').isVisible();
+  async isAppConfigVisible() {
+    return this.page.locator('text=App Config').isVisible();
   }
 }

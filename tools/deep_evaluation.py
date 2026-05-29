@@ -97,8 +97,7 @@ def aggregate_scores(test_pct, script_pct, bug_pct, weights=(0.4, 0.4, 0.2)):
 def evaluate_run(run_id: str) -> float:
     """Load the run's context, compute evaluation metrics, write back, and post to JIRA.
     Returns the overall accuracy percentage."""
-    tmp_dir = Path('.tmp') / run_id
-    ctx_path = tmp_dir / 'context.json'
+    ctx_path = Path('.tmp') / 'context.json'
     if not ctx_path.is_file():
         raise FileNotFoundError(f"Context file not found for run {run_id}")
     ctx = json.loads(ctx_path.read_text())
@@ -106,7 +105,7 @@ def evaluate_run(run_id: str) -> float:
     # 1) Test‑case alignment
     tc_score, tc_details = evaluate_test_cases(ctx.get('requirements', []), ctx.get('test_cases', []))
     # 2) Script alignment – page objects live under 'pages' relative to project root
-    script_score, script_details = evaluate_scripts(ctx.get('scripts', []), Path('pages'))
+    script_score, script_details = evaluate_scripts(ctx.get('scripts', []), Path('tests/pages'))
     # 3) Bug accuracy
     bug_score, bug_details = evaluate_bugs(ctx.get('bugs', []), ctx)
 

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Name Truncation — Full QA Verification Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1a1a2e; padding: 1.5rem; }
+  .container { max-width: 1300px; margin: 0 auto; }
+  .header { background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 2rem 2.5rem; border-radius: 16px; margin-bottom: 1.2rem; }
+  .header h1 { font-size: 1.5rem; }
+  .header .sub { opacity: .75; font-size: .85rem; margin-top: .3rem; }
+  .header .meta { display: flex; gap: 1.5rem; font-size: .78rem; opacity: .65; margin-top: .6rem; flex-wrap: wrap; }
+  .overall-card { background: #fff; border-radius: 16px; padding: 1.8rem; margin-bottom: 1.2rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .overall-value { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+  .overall-value.pass { color: #22c55e; }
+  .overall-label { font-size: .95rem; color: #64748b; margin-top: .3rem; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.2rem; }
+  .metric-card { background: #fff; border-radius: 12px; padding: 1.3rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .metric-value { font-size: 2rem; font-weight: 700; }
+  .metric-value.good { color: #22c55e; }
+  .metric-value.ok { color: #f59e0b; }
+  .metric-value.bad { color: #ef4444; }
+  .metric-label { font-size: .82rem; color: #64748b; margin-top: .2rem; }
+  .section { background: #fff; border-radius: 12px; padding: 1.3rem 1.5rem; margin-bottom: 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .section h2 { font-size: 1.1rem; margin-bottom: .8rem; padding-bottom: .5rem; border-bottom: 2px solid #f1f5f9; display: flex; align-items: center; gap: .5rem; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+  .stat-box { background: #f8fafc; border-radius: 10px; padding: .8rem; text-align: center; }
+  .stat-box .num { font-size: 1.5rem; font-weight: 700; }
+  .stat-box .lbl { font-size: .72rem; color: #64748b; margin-top: .15rem; }
+  .num.green { color: #22c55e; } .num.red { color: #ef4444; } .num.blue { color: #3b82f6; } .num.purple { color: #8b5cf6; } .num.amber { color: #f59e0b; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th { text-align: left; padding: .5rem .6rem; background: #f8fafc; border-bottom: 2px solid #e2e8f0; font-weight: 600; color: #475569; white-space: nowrap; }
+  td { padding: .45rem .6rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .tag { display: inline-block; padding: .12rem .5rem; border-radius: 12px; font-size: .7rem; font-weight: 600; }
+  .tag.pass { background: #dcfce7; color: #16a34a; }
+  .tag.fail { background: #fef2f2; color: #dc2626; }
+  .tag.warn { background: #fef3c7; color: #d97706; }
+  .tag.p0 { background: #fef2f2; color: #dc2626; }
+  .tag.p1 { background: #fef3c7; color: #d97706; }
+  .tag.p2 { background: #dbeafe; color: #2563eb; }
+  .tag.local { background: #f3e8ff; color: #7c3aed; }
+  .bar { background: #e2e8f0; border-radius: 20px; height: 7px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 20px; }
+  .bar-fill.green { background: #22c55e; }
+  .bar-fill.yellow { background: #f59e0b; }
+  .bar-fill.red { background: #ef4444; }
+  .bar-fill.blue { background: #3b82f6; }
+  .bug { background: #fef2f2; border-left: 3px solid #ef4444; border-radius: 6px; padding: .7rem .9rem; margin: .4rem 0; }
+  .bug .btitle { font-weight: 600; color: #dc2626; font-size: .85rem; }
+  .bug .binfo { font-size: .78rem; color: #475569; margin-top: .2rem; }
+  .badge { display: inline-block; padding: .2rem .7rem; border-radius: 20px; font-size: .7rem; font-weight: 600; }
+  .badge.red { background: #fef2f2; color: #dc2626; }
+  .badge.amber { background: #fef3c7; color: #d97706; }
+  .badge.green { background: #dcfce7; color: #16a34a; }
+  .badge.purple { background: #f3e8ff; color: #7c3aed; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  .three-col-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+  .ac-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: .8rem; background: #fafafa; }
+  .ac-box.pass { border-color: #86efac; background: #f0fdf4; }
+  .ac-box.fail { border-color: #fecaca; background: #fef2f2; }
+  .ac-box.warn { border-color: #fde68a; background: #fffbeb; }
+  .ac-box .ac-title { font-weight: 600; font-size: .82rem; }
+  .ac-box .ac-result { font-size: .8rem; margin-top: .2rem; }
+  .ac-box .ac-note { font-size: .72rem; color: #64748b; margin-top: .2rem; }
+  @media (max-width: 768px) { .three-col, .two-col, .three-col-grid { grid-template-columns: 1fr; } }
+  .footer { text-align: center; color: #94a3b8; font-size: .75rem; padding: 1.2rem; }
+  .issue-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: .9rem 1rem; margin-bottom: 1.2rem; font-size: .85rem; color: #166534; }
+  .issue-box.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>&#9989; Insurance Name Truncation — Full QA Verification Report</h1>
+  <div class="sub">DME Rocket &bull; Bug Retest Validation &bull; App Config / Insurance Module</div>
+  <div class="meta">
+    <span>&#128197; 2026-05-28</span>
+    <span>&#128279; Input: BUG_Retest_Insurance_Name_Truncation.md</span>
+    <span>&#127760; dev.dmerocket.com/insurance</span>
+    <span>&#128220; Bugs filed locally (not JIRA)</span>
+  </div>
+  <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+    <span class="badge green">&#9989; All 8/8 verification tests PASSED</span>
+    <span class="badge green">&#9989; Fix verified — no truncation detected</span>
+    <span class="badge purple">&#128230; 0 bugs (fix is working)</span>
+  </div>
+</div>
+
+<div class="issue-box">
+  <strong>&#9989; Truncation fix confirmed.</strong> All 8 acceptance criteria tests passed on live dev.dmerocket.com.
+  Long names (49+ chars), 51-char boundary, special characters, and edit flow all work correctly.
+  The <code>input#name</code> field accepts and persists full-length names without truncation.
+</div>
+
+<div class="overall-card">
+  <div class="overall-value pass">100%</div>
+  <div class="overall-label">Verification Tests Passed</div>
+  <div class="overall-label" style="font-size:.78rem;color:#94a3b8">8/8 tests &bull; Executed in headed mode &bull; Live dev.dmerocket.com</div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-box"><div class="num purple">8</div><div class="lbl">Verification Tests</div></div>
+  <div class="stat-box"><div class="num green">8</div><div class="lbl">Passed</div></div>
+  <div class="stat-box"><div class="num green">0</div><div class="lbl">Failed</div></div>
+  <div class="stat-box"><div class="num green">0</div><div class="lbl">Bugs Found</div></div>
+  <div class="stat-box"><div class="num blue">4.8m</div><div class="lbl">Execution Time</div></div>
+  <div class="stat-box"><div class="num amber">1</div><div class="lbl">Iteration</div></div>
+</div>
+
+<div class="two-col">
+<div class="section">
+  <h2>&#9989; Acceptance Criteria — All Passed</h2>
+  <div class="three-col-grid">
+    <div class="ac-box pass">
+      <div class="ac-title">TC-004: Create with long name</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">Created "BCBS TPA SOUTHWEST SERVICE ADMINISTRATORS (MID-LEVEL)" (49 chars)</div>
+    </div>
+    <div class="ac-box pass">
+      <div class="ac-title">TC-005: Verify saved name (create)</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">Full name found in listing via search + first column lookup</div>
+    </div>
+    <div class="ac-box pass">
+      <div class="ac-title">TC-006: Full name in listing</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">Name appears in full without truncation in listing table</div>
+    </div>
+    <div class="ac-box pass">
+      <div class="ac-title">TC-010: Edit with long name</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">Flow: View &rarr; Edit &rarr; fill updated name &rarr; Save and Close</div>
+    </div>
+    <div class="ac-box pass">
+      <div class="ac-title">TC-011: Verify updated name (edit)</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">Updated name "BCBS TPA ... UPDATED" persisted correctly</div>
+    </div>
+    <div class="ac-box pass">
+      <div class="ac-title">TC-015: 51+ chars (boundary)</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">51-character name saves without truncation (past old 50-char limit)</div>
+    </div>
+    <div class="ac-box pass">
+      <div class="ac-title">TC-016: Short name regression</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">"TEST INSURANCE SHORT" — short names unaffected by fix</div>
+    </div>
+    <div class="ac-box pass">
+      <div class="ac-title">TC-017: Special characters</div>
+      <div class="ac-result"><span class="tag pass">PASSED</span></div>
+      <div class="ac-note">"BCBS TPA (MID-LEVEL) &amp; ASSOCIATES &mdash; SOUTHWEST" — &amp;, &mdash;, parens preserved</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>&#128270; Verification Details</h2>
+  <table>
+    <thead><tr><th>TC</th><th>Test</th><th>Result</th><th>What Was Tested</th></tr></thead>
+    <tbody>
+      <tr><td>TC-004</td><td>Create long name</td><td><span class="tag pass">PASS</span></td><td>Fill <code>input#name</code> with 49-char name, click "Save and Close"</td></tr>
+      <tr><td>TC-005</td><td>Verify persisted (create)</td><td><span class="tag pass">PASS</span></td><td>Search by name, check first <code>td</code> of result row</td></tr>
+      <tr><td>TC-006</td><td>Full name visible</td><td><span class="tag pass">PASS</span></td><td>Full name equals original, no truncation in listing</td></tr>
+      <tr><td>TC-010</td><td>Edit long name</td><td><span class="tag pass">PASS</span></td><td>View &rarr; Edit button &rarr; fill updated name &rarr; Save and Close</td></tr>
+      <tr><td>TC-011</td><td>Verify persisted (edit)</td><td><span class="tag pass">PASS</span></td><td>Updated name found and matches exactly</td></tr>
+      <tr><td>TC-015</td><td>51+ char boundary</td><td><span class="tag pass">PASS</span></td><td>51 x "A" saves without truncation</td></tr>
+      <tr><td>TC-016</td><td>Short name regr.</td><td><span class="tag pass">PASS</span></td><td>"TEST INSURANCE SHORT" — no regression</td></tr>
+      <tr><td>TC-017</td><td>Special chars</td><td><span class="tag pass">PASS</span></td><td>&amp;, em-dash, parentheses all preserved</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+
+<div class="two-col">
+<div class="section">
+  <h2>&#128196; Key Selectors Discovered</h2>
+  <table>
+    <thead><tr><th>Element</th><th>Selector</th></tr></thead>
+    <tbody>
+      <tr><td>New Insurance button</td><td><code>button:has-text("New Insurance")</code></td></tr>
+      <tr><td>Name field</td><td><code>input#name</code> (placeholder: "Enter name")</td></tr>
+      <tr><td>Save button</td><td><code>button:has-text("Save and Close")</code></td></tr>
+      <tr><td>Cancel button</td><td><code>button:has-text("Cancel")</code></td></tr>
+      <tr><td>View button (listing)</td><td><code>button:has-text("View")</code></td></tr>
+      <tr><td>Edit button (detail)</td><td><code>button:has-text("Edit")</code> on detail page</td></tr>
+      <tr><td>Back to List</td><td><code>button:has-text("Back To List")</code></td></tr>
+      <tr><td>Search input</td><td><code>input[placeholder="Search name"]</code></td></tr>
+      <tr><td>Search button</td><td><code>button:has-text("Search Insurances")</code></td></tr>
+      <tr><td>Listing first column</td><td><code>table tbody tr td:first-child</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>&#128203; Requirements Covered</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Verified By</th></tr></thead>
+    <tbody>
+      <tr><td>REQ-001</td><td>Application Load</td><td><span class="tag pass">PASS</span></td><td>Baseline — login worked</td></tr>
+      <tr><td>REQ-002</td><td>Admin User Login</td><td><span class="tag pass">PASS</span></td><td>Auth0 login with admin@selectortho.net</td></tr>
+      <tr><td>REQ-003</td><td>Display Ins. Module</td><td><span class="tag pass">PASS</span></td><td>Navigated to /insurance</td></tr>
+      <tr><td>REQ-004</td><td>Navigate to Ins. Listing</td><td><span class="tag pass">PASS</span></td><td>"Insurance Search" page rendered</td></tr>
+      <tr><td>REQ-005</td><td>Persist Full Name on Create</td><td><span class="tag pass">PASS</span></td><td>TC-004, TC-005, TC-006</td></tr>
+      <tr><td>REQ-006</td><td>Persist Full Name on Edit</td><td><span class="tag pass">PASS</span></td><td>TC-010, TC-011</td></tr>
+      <tr><td>REQ-007</td><td>Display Full Name in Listing</td><td><span class="tag pass">PASS</span></td><td>TC-005, TC-006, TC-011</td></tr>
+      <tr><td>REQ-008</td><td>No Truncation in UI</td><td><span class="tag pass">PASS</span></td><td>All 8 tests</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+
+<div class="section">
+  <h2>&#128204; Executive Summary</h2>
+  <table>
+    <thead><tr><th>Criterion</th><th>Automation Verdict</th><th>Manual Verdict</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>TC-004: Long name saves on Create</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>49-char name saved without truncation</td></tr>
+      <tr><td>TC-005: Long name persists on Create</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>Found in listing by search</td></tr>
+      <tr><td>TC-006: Full name in listing (create)</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>Full name displayed in first column</td></tr>
+      <tr><td>TC-010: Long name saves on Edit</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>Flow: View &rarr; Edit &rarr; Save and Close</td></tr>
+      <tr><td>TC-011: Updated name persists (edit)</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>Updated name matched exactly</td></tr>
+      <tr><td>TC-015: 51+ chars (boundary)</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>51-char name past old limit</td></tr>
+      <tr><td>TC-016: Short name regression</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>Short name unaffected</td></tr>
+      <tr><td>TC-017: Special characters</td><td><span class="tag pass">AUTO PASS</span></td><td><span class="tag pass">CONFIRMED</span></td><td>Special chars preserved</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:.6rem;font-size:.8rem;color:#64748b">
+    <strong>Conclusion:</strong> The insurance name truncation fix is <strong>verified and working</strong> on dev.dmerocket.com.
+    Long names, boundary cases (51 chars), short names, and special characters all save and display correctly.
+    Both create and edit flows persist the full name without truncation.
+    <strong>No bugs found. The fix is confirmed.</strong>
+  </p>
+</div>
+
+<div class="section">
+  <h2>&#128230; Output Artifacts</h2>
+  <table>
+    <thead><tr><th>Artifact</th><th>Path (relative to run folder)</th></tr></thead>
+    <tbody>
+      <tr><td>Verification Report</td><td><code>report.html</code> (this file)</td></tr>
+      <tr><td>Verification Spec</td><td><code>tests/specs/insurance_name_verification.spec.ts</code></td></tr>
+      <tr><td>Pipeline Context</td><td><code>tmp/context.json</code></td></tr>
+      <tr><td>Playwright Results</td><td><code>test-results/</code> (screenshots + videos)</td></tr>
+      <tr><td>Previous Pipeline Run</td><td><code>run_insurance_verification_20260528_154940/</code></td></tr>
+      <tr><td>Requirements Document</td><td><code>BUG_Retest_Insurance_Name_Truncation.md</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  Generated by QA Workflow AI Agent &bull; run_insurance_verification_20260528_163019 &bull; 2026-05-28
+</div>
+
+</div>
+</body>
+</html>
