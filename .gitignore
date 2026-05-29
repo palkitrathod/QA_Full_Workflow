@@ -41,3 +41,11 @@ generated_test_cases.md
 # OS
 .DS_Store
 Thumbs.db
+
+# Web app run artifacts (regenerated on each run)
+web/runs/
+web/uploads/
+
+# Frontend build output (npm run build regenerates)
+web/frontend/dist/
+web/frontend/node_modules/
