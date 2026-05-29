@@ -120,7 +120,8 @@ class PipelineController:
             BugFiler().run()
 
             print("\n[6/7] Running Deep Evaluation...")
-            overall = evaluate_run(ctx.get("run_id"))
+            eval_result = evaluate_run(ctx.get("run_id"))
+            overall = eval_result.get("overall_accuracy", 0)
             threshold = int(os.getenv("EVAL_THRESHOLD", "90"))
             if overall < threshold:
                 self.abort(f"Overall evaluation {overall}% below threshold {threshold}%.")

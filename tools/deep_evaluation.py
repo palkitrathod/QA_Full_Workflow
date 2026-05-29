@@ -3,6 +3,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+from .llm_client import LLMClient
 
 
 def _jaccard_similarity(a: str, b: str) -> float:
@@ -181,17 +182,89 @@ def evaluate_coverage(scripts, test_cases):
     return coverage, {"coverage": coverage, "missing": list(missing), "orphaned": list(orphaned), "reasons": reasons}
 
 
-def aggregate_scores(script_pct, bug_pct, coverage_pct, weights=(0.5, 0.3, 0.2)):
-    return round(
+# ---------------------------------------------------------------------
+# Optional LLM-based semantic evaluation layer
+_ENABLE_LLM_EVAL = os.getenv("LLM_EVAL", "").lower() in ("1", "true", "yes")
+
+
+def _llm_available() -> bool:
+    if not _ENABLE_LLM_EVAL:
+        return False
+    try:
+        LLMClient()
+        return True
+    except Exception:
+        return False
+
+
+def _llm_rate_script(script: dict, test_case: dict) -> dict:
+    """Ask LLM to rate script quality against the test case (0-100)."""
+    client = LLMClient()
+    prompt = (
+        "You are a QA evaluator. Rate how well a Playwright test script covers its test case.\n"
+        "Return JSON: { 'coverage_score': int(0-100), 'assertion_quality': int(0-100), "
+        "'edge_case_handling': int(0-100), 'issues': [str], 'overall': int(0-100) }\n\n"
+        "Rules:\n"
+        "- coverage_score: does the script test ALL acceptance criteria?\n"
+        "- assertion_quality: are expect() calls meaningful (not just existence checks)?\n"
+        "- edge_case_handling: does it test boundary values, error states?\n"
+        "- issues: list specific problems found\n"
+        "- overall: weighted average of the above"
+    )
+    data = {
+        "test_case": test_case,
+        "script_file": script.get("file_path"),
+        "script_status": script.get("status"),
+        "error_log": script.get("error_log"),
+    }
+    return client.generate_json(prompt, json.dumps(data, indent=2))
+
+
+def _llm_rate_bug(bug: dict, script: dict) -> dict:
+    """Ask LLM to rate bug report quality (0-100)."""
+    client = LLMClient()
+    prompt = (
+        "You are a QA evaluator. Rate the quality of a bug report.\n"
+        "Return JSON: { 'clarity': int(0-100), 'reproducibility': int(0-100), "
+        "'root_cause_analysis': int(0-100), 'issues': [str], 'overall': int(0-100) }\n\n"
+        "Rules:\n"
+        "- clarity: is the bug title clear, steps detailed, expected vs actual unambiguous?\n"
+        "- reproducibility: can a developer reliably reproduce from the description?\n"
+        "- root_cause_analysis: does the error message point to the likely cause?\n"
+        "- issues: list specific quality problems\n"
+        "- overall: weighted average"
+    )
+    data = {"bug": bug, "script_error": script.get("error_log") if script else None}
+    return client.generate_json(prompt, json.dumps(data, indent=2))
+
+
+def blend_scores(
+    script_pct, bug_pct, coverage_pct,
+    llm_script_scores=None, llm_bug_scores=None,
+    weights=(0.35, 0.20, 0.15, 0.20, 0.10),
+):
+    """
+    Weights: mechanical(scripts)=0.35, mechanical(bugs)=0.20, coverage=0.15,
+             llm(scripts+bugs)=0.20, llm(bugs)=0.10
+    """
+    mechanical = (
         script_pct * weights[0]
         + bug_pct * weights[1]
-        + coverage_pct * weights[2],
-        1,
+        + coverage_pct * weights[2]
     )
 
+    if llm_script_scores is not None and llm_bug_scores is not None:
+        llm_avg = (llm_script_scores + llm_bug_scores) / 2
+        return round(mechanical + llm_avg * weights[3] + llm_bug_scores * weights[4], 1)
+    elif llm_script_scores is not None:
+        return round(mechanical + llm_script_scores * (weights[3] + weights[4]), 1)
 
-def evaluate_run(run_id: str) -> float:
-    """Load context, run evaluations, write results back."""
+    return round(mechanical / sum(weights[:3]) * 100, 1)  # normalize when no LLM
+
+
+def evaluate_run(run_id: str) -> dict:
+    """Load context, run evaluations (mechanical + optional LLM), write results back.
+    Returns dict with overall_accuracy and per-component scores."""
     ctx_path = Path(".tmp") / "context.json"
     if not ctx_path.is_file():
         raise FileNotFoundError(f"Context file not found for run {run_id}")
@@ -201,23 +274,101 @@ def evaluate_run(run_id: str) -> float:
     scripts = ctx.get("scripts", [])
     bugs = ctx.get("bugs", [])
 
+    # --- Mechanical checks (fast, deterministic) ---
     script_score, script_details = evaluate_scripts(scripts, test_cases)
     bug_score, bug_details = evaluate_bugs(bugs, scripts)
     coverage_score, coverage_details = evaluate_coverage(scripts, test_cases)
 
-    overall = aggregate_scores(script_score, bug_score, coverage_score)
-
-    ctx["evaluation"] = {
+    eval_data = {
         "script_quality": script_score,
         "bug_quality": bug_score,
         "test_coverage": coverage_score,
-        "overall_accuracy": overall,
-        "weights": {"scripts": 0.5, "bugs": 0.3, "coverage": 0.2},
         "details": {
             "scripts": script_details,
             "bugs": bug_details,
             "coverage": coverage_details,
         },
     }
+
+    # --- Optional LLM semantic evaluation ---
+    llm_script_scores = None
+    llm_bug_scores = None
+    llm_details_scripts = []
+    llm_details_bugs = []
+
+    if _llm_available():
+        print("[LLM EVAL] Running semantic evaluation…")
+
+        # Rate each script against its test case
+        script_ratings = []
+        for script in scripts:
+            tc_id = script.get("test_case_id")
+            tc = next((t for t in test_cases if t.get("id") == tc_id), {})
+            if tc and script.get("file_path"):
+                try:
+                    rating = _llm_rate_script(script, tc)
+                    script_ratings.append(rating.get("overall", 50))
+                    llm_details_scripts.append({
+                        "script_id": script.get("id"),
+                        "llm_coverage": rating.get("coverage_score"),
+                        "llm_assertions": rating.get("assertion_quality"),
+                        "llm_edge_cases": rating.get("edge_case_handling"),
+                        "llm_issues": rating.get("issues", []),
+                    })
+                except Exception as e:
+                    print(f"  [LLM EVAL] Script eval failed: {e}")
+                    script_ratings.append(50)
+                    llm_details_scripts.append({"script_id": script.get("id"), "error": str(e)})
+
+        if script_ratings:
+            llm_script_scores = sum(script_ratings) / len(script_ratings)
+
+        # Rate each bug against its script
+        bug_ratings = []
+        for bug in bugs:
+            script_id = bug.get("script_id")
+            script = next((s for s in scripts if s.get("id") == script_id), {})
+            try:
+                rating = _llm_rate_bug(bug, script)
+                bug_ratings.append(rating.get("overall", 50))
+                llm_details_bugs.append({
+                    "bug_id": bug.get("id") or bug.get("test_case_id"),
+                    "llm_clarity": rating.get("clarity"),
+                    "llm_reproducibility": rating.get("reproducibility"),
+                    "llm_root_cause": rating.get("root_cause_analysis"),
+                    "llm_issues": rating.get("issues", []),
+                })
+            except Exception as e:
+                print(f"  [LLM EVAL] Bug eval failed: {e}")
+                bug_ratings.append(50)
+                llm_details_bugs.append({"bug_id": bug.get("test_case_id"), "error": str(e)})
+
+        if bug_ratings:
+            llm_bug_scores = sum(bug_ratings) / len(bug_ratings)
+
+        print(f"  [LLM EVAL] Script avg: {llm_script_scores:.1f}  Bug avg: {llm_bug_scores:.1f}")
+
+    overall = blend_scores(
+        script_score, bug_score, coverage_score,
+        llm_script_scores, llm_bug_scores,
+    )
+
+    eval_data["overall_accuracy"] = overall
+    eval_data["llm_enabled"] = _llm_available()
+    eval_data["llm_details"] = {
+        "scripts": llm_details_scripts,
+        "bugs": llm_details_bugs,
+    }
+    eval_data["weights"] = (
+        "mechanical(scripts=0.35, bugs=0.20, coverage=0.15), "
+        "llm(semantic=0.20, bug_quality=0.10)"
+    )
+
+    ctx["evaluation"] = eval_data
     ctx_path.write_text(json.dumps(ctx, indent=2))
-    return overall
+
+    print(f"\n[EVAL] Mechanical — Scripts: {script_score}%  Bugs: {bug_score}%  Coverage: {coverage_score}%")
+    if _llm_available():
+        print(f"[EVAL] LLM       — Scripts: {llm_script_scores:.1f}    Bugs: {llm_bug_scores:.1f}")
+    print(f"[EVAL] Overall   — {overall}%")
+    return eval_data
